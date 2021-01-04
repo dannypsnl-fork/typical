@@ -30,7 +30,7 @@
         (data stx name (dependency* ...)
               constructor* ...) => (data name (dependency* ...) constructor* ...))
   (Bind (dependency constructor)
-        (: stx name typ) => (name : typ))
+        (: name typ) => (name : typ))
   (Expr (expr)
         name
         ;; application
@@ -62,7 +62,7 @@
   (Bind : * (stx) -> Bind (constructor)
         (syntax-case stx (:)
           [(name : typ)
-           `(: ,stx ,#'name ,(Type #'typ))]
+           `(: ,#'name ,(Type #'typ))]
           [else (error 'syntax "bad binding: ~a" stx)]))
   (Expr : * (stx) -> Expr (expr)
         (syntax-case stx ()
@@ -77,17 +77,17 @@
           [(-> typ* ... typ)
            `(-> ,(map Type (syntax->list #'(typ* ...))) ... ,(Type #'typ))]
           [(name typ* ...)
-           `(,#'name ,(map Type (syntax->list #'(typ* ...))) ...)]
+           `(,(Type #'name) ,(map Type (syntax->list #'(typ* ...))) ...)]
           [_
            (cond
              [(identifier? stx) stx]
              [else (error 'syntax "unknown type: ~a" stx)])]))
   (Stmt stx))
 
+(define-parser _ Typical)
+
 (module+ test
   (require rackunit)
-
-  (define-parser pa Typical)
 
   (let ([p (λ (e) (unparse-Typical (parse e)))])
     (check-equal? (p #'(data (List [A : U])
