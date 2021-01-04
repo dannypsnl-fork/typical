@@ -1,5 +1,7 @@
 #lang racket
 
+(require "lang.rkt")
+
 (module+ main
   (require racket/cmdline)
 

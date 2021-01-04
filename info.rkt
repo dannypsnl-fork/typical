@@ -1,6 +1,7 @@
 #lang info
 (define collection "typical")
-(define deps '("base"))
+(define deps '("base"
+               "nanopass"))
 (define build-deps '("scribble-lib" "racket-doc" "rackunit-lib"))
 (define scribblings '(("scribblings/typical.scrbl" ())))
 (define pkg-desc "Description Here")
