@@ -84,13 +84,18 @@
              [else (error 'syntax "unknown type: ~a" stx)])]))
   (Stmt stx))
 
-(parse #'(data Nat
-               [z : Nat]
-               [s : (-> Nat Nat)]))
-(parse #'(data (List [A : U])
-               [nil : (List A)]
-               [cons : (-> A (List A) (List A))]))
-(parse #'(z : Nat))
-(parse #'((s z) : Nat))
-(parse #'(claim a Nat))
-(parse #'(define a z))
+(module+ test
+  (require rackunit)
+
+  (define-parser pa Typical)
+
+  (let ([p (λ (e) (unparse-Typical (parse e)))])
+    (check-equal? (p #'(data (List [A : U])
+                   [nil : (List A)]
+                   [cons : (-> A (List A) (List A))]))
+                  '(data List ([A : U])
+                         [nil : (List A)]
+                         [cons : (A (List A) -> (List A))]))
+    (check-equal? (p #'((s z) : Nat)) '((s z) is-a? Nat))
+    (check-equal? (p #'(claim a Nat)) '(claim a Nat))
+    (check-equal? (p #'(define a z)) '(define a z))))
