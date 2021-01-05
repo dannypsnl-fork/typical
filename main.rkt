@@ -1,7 +1,6 @@
 #lang racket/base
 
 (require racket/syntax
-         racket/list
          racket/match
          nanopass/base
          "lang.rkt"
@@ -9,7 +8,7 @@
          "core.rkt"
          "helper.rkt")
 
-(define-pass expand-data : Typical (t) -> * ()
+(define-pass pass:expand-data : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
         [(data ,stx ,name (,dependency* ...)
                ,constructor* ...)
@@ -19,7 +18,7 @@
                               (nanopass-case
                                (Typical Bind) d
                                [(: ,name ,typ)
-                                (cons (syntax-e name) (freevar (syntax-e name) (convert-ty typ)))]))
+                                (cons (syntax-e name) (freevar (syntax-e name)))]))
                             dependency*)))
          (for ([c constructor*])
            (Bind c dep*))
@@ -37,7 +36,7 @@
          (env/bind name ty)])
   (Stmt t))
 
-(define-pass ty/bind : Typical (t) -> * ()
+(define-pass pass:ty/bind : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
         [(claim ,stx ,name ,typ)
          (env/bind name (convert-ty typ))
@@ -45,7 +44,7 @@
         [else t])
   (Stmt t))
 
-(define-pass ty/check : Typical (t) -> * ()
+(define-pass pass:ty/check : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
         [(is-a? ,stx ,expr ,typ)
          (unify stx (convert-ty typ) (ty/infer expr))
@@ -59,23 +58,36 @@
 (define-pass ty/infer : Typical (e) -> * ()
   (Expr : Expr (e) -> * (t)
         [,name (env/lookup name)]
+        [(λ ,stx (,param* ...) ,expr)
+         (parameterize ([cur-env (make-env)])
+           (define param-typ* (map (λ (p) (freevar (syntax-e p))) param*))
+           (for ([p param*]
+                 [pt param-typ*])
+             (env/bind p pt))
+           `(-> ,@param-typ*
+                ; return type
+                ,(ty/infer expr)))]
         [(app ,stx ,expr ,expr* ...)
          (match (ty/infer expr)
            [`(-> ,typ* ... ,typ)
-            (let ([subst (make-subst)])
+            (let ([subst (make-subst)]
+                  [param-len (length typ*)]
+                  [arg-len (length expr*)])
+              (unless (= param-len arg-len)
+                (wrong-syntax stx (format "arity mismatched, expected ~a, given ~a" param-len arg-len)))
               (for ([t typ*]
                     [e expr*])
                 (unify (exp->stx e) t (ty/infer e) #:subst subst))
               (replace-occur typ #:occur (subst-resolve subst)))]
-           [else (wrong-syntax expr "not appliable")])])
+           [else (wrong-syntax (exp->stx expr) "not appliable")])])
   (Expr e))
 
 (module+ test
   (define final
     (compose-pass parse
-                  expand-data
-                  ty/bind
-                  ty/check))
+                  pass:expand-data
+                  pass:ty/bind
+                  pass:ty/check))
 
   (final #'(data Nat
                  [zero : Nat]
@@ -94,4 +106,9 @@
                  [:: : (A (List A) -> (List A))]))
   (final #'(c : (List Nat)))
   (final #'(c = (:: (suc zero) (:: zero nil))))
+
+  (final #'(d : (Nat -> Nat)))
+  (final #'(d = (λ (n) n)))
+  (final #'(e : Nat))
+  (final #'(e = (d (suc (suc zero)))))
   )

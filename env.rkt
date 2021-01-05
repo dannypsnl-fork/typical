@@ -3,6 +3,8 @@
 (provide make-env cur-env
          env/bind env/lookup)
 
+(require racket/syntax)
+
 (struct env (cur-map parent) #:transparent)
 (define (make-env [parent (cur-env)])
   (env (make-hash) parent))
@@ -23,7 +25,7 @@
               (λ () (if parent
                         (parameterize ([cur-env parent])
                           (env/lookup id))
-                        #f)))))
+                        (wrong-syntax id "not found"))))))
 
 (module+ test
   (require rackunit)

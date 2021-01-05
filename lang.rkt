@@ -29,6 +29,8 @@
         (: name typ) => (name : typ))
   (Expr (expr)
         name
+        ;; abstraction
+        (λ stx (param* ...) expr) => (λ (param* ...) expr)
         ;; application
         (app stx expr expr* ...) => (expr expr* ...))
   (Type (typ)
@@ -61,7 +63,9 @@
            `(: ,#'name ,(Type #'typ))]
           [else (wrong-syntax stx "bad binding")]))
   (Expr : * (stx) -> Expr (expr)
-        (syntax-case stx ()
+        (syntax-case stx (λ)
+          [(λ (param* ...) exp)
+           `(λ ,stx (,(map Expr (syntax->list #'(param* ...))) ...) ,(Expr #'exp))]
           [(f arg* ...)
            `(app ,stx ,(Expr #'f) ,(map Expr (syntax->list #'(arg* ...))) ...)]
           [_
@@ -83,6 +87,7 @@
 (define-pass exp->stx : Typical (e) -> * ()
   (Expr : Expr (e) -> * (t)
         [,name name]
+        [(λ ,stx (,param* ...) ,expr) stx]
         [(app ,stx ,expr ,expr* ...) stx])
   (Expr e))
 
@@ -107,6 +112,6 @@
                   '(data List ([A : Type])
                          [nil : (List A)]
                          [:: : (A (List A) -> (List A))]))
-    (check-equal? (p #'((s z) : Nat)) '((s z) is-a? Nat))
-    (check-equal? (p #'(claim a Nat)) '(claim a Nat))
-    (check-equal? (p #'(define a z)) '(define a z))))
+    (check-equal? (p #'((s z) :? Nat)) '((s z) is-a? Nat))
+    (check-equal? (p #'(a : Nat)) '(claim a Nat))
+    (check-equal? (p #'(a = z)) '(define a z))))

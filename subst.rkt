@@ -38,8 +38,8 @@
   resolved-map)
 
 (provide (struct-out freevar))
-(struct freevar (name typ)
+(struct freevar (name)
   #:methods gen:custom-write
   [(define (write-proc self port mode)
-     (fprintf port "<?~a : ~a>" (freevar-name self) (freevar-typ self)))]
+     (fprintf port "?~a" (freevar-name self)))]
   #:transparent)
