@@ -2,7 +2,8 @@
 
 (provide (all-defined-out))
 
-(require syntax/parse
+(require racket/syntax
+         syntax/parse
          nanopass/base)
 
 (define (unparse-id x)
@@ -13,6 +14,7 @@
   (entry Stmt)
   (terminals
    (syntax (stx))
+   (symbol (base))
    ((identifier (name param)) . => . unparse-id))
   (Stmt (stmt)
         ;; (expr : typ)
@@ -21,12 +23,6 @@
         (claim stx name typ) => (claim name typ)
         ;; (define x z)
         (define stx name expr) => (define name expr)
-        ;; (data Nat
-        ;;   [z : Nat]
-        ;;   [s : (-> Nat Nat)])
-        ;; (data (List [A : U])
-        ;;   [nil : (List A)]
-        ;;   [cons : (-> A (List A) (List A))])
         (data stx name (dependency* ...)
               constructor* ...) => (data name (dependency* ...) constructor* ...))
   (Bind (dependency constructor)
@@ -37,20 +33,20 @@
         (app stx expr expr* ...) => (expr expr* ...))
   (Type (typ)
         ;; base
-        name
+        base
         ;; polymorphism
-        (name typ* ...)
+        (typ* ...)
         ;; arrow
         (-> typ* ... typ) => (typ* ... -> typ)))
 
 (define-pass parse : * (stx) -> Typical ()
   (Stmt : * (stx) -> Stmt (stmt)
-        (syntax-case stx (: data define claim)
-          [(expr : typ)
+        (syntax-case stx (:? data : =)
+          [(expr :? typ)
            `(is-a? ,stx ,(Expr #'expr) ,(Type #'typ))]
-          [(claim name typ)
+          [(name : typ)
            `(claim ,stx ,#'name ,(Type #'typ))]
-          [(define name expr)
+          [(name = expr)
            `(define ,stx ,#'name ,(Expr #'expr))]
           [(data (name dep* ...) constructor* ...)
            `(data ,stx ,#'name (,(map Bind (syntax->list #'(dep* ...))) ...)
@@ -58,12 +54,12 @@
           [(data name constructor* ...)
            `(data ,stx ,#'name ()
                   ,(map Bind (syntax->list #'(constructor* ...))) ...)]
-          [else (error 'syntax "unknown statement: ~a" stx)]))
+          [else (wrong-syntax stx "invalid statement")]))
   (Bind : * (stx) -> Bind (constructor)
         (syntax-case stx (:)
           [(name : typ)
            `(: ,#'name ,(Type #'typ))]
-          [else (error 'syntax "bad binding: ~a" stx)]))
+          [else (wrong-syntax stx "bad binding")]))
   (Expr : * (stx) -> Expr (expr)
         (syntax-case stx ()
           [(f arg* ...)
@@ -71,31 +67,36 @@
           [_
            (cond
              [(identifier? stx) stx]
-             [else (error 'syntax "unknown expression: ~a" stx)])]))
+             [else (wrong-syntax stx "invalid expression")])]))
   (Type : * (stx) -> Type (typ)
         (syntax-case stx (->)
-          [(-> typ* ... typ)
+          [(typ* ... -> typ)
            `(-> ,(map Type (syntax->list #'(typ* ...))) ... ,(Type #'typ))]
-          [(name typ* ...)
-           `(,(Type #'name) ,(map Type (syntax->list #'(typ* ...))) ...)]
+          [(typ* ...)
+           `(,(map Type (syntax->list #'(typ* ...))) ...)]
           [_
            (cond
-             [(identifier? stx) stx]
-             [else (error 'syntax "unknown type: ~a" stx)])]))
+             [(identifier? stx) (syntax-e stx)]
+             [else (wrong-syntax stx "invalid type")])]))
   (Stmt stx))
 
-(define-parser _ Typical)
+(define-pass exp->stx : Typical (e) -> * ()
+  (Expr : Expr (e) -> * (t)
+        [,name name]
+        [(app ,stx ,expr ,expr* ...) stx])
+  (Expr e))
 
 (module+ test
   (require rackunit)
 
+  (define-parser _ Typical)
   (let ([p (λ (e) (unparse-Typical (parse e)))])
-    (check-equal? (p #'(data (List [A : U])
-                   [nil : (List A)]
-                   [cons : (-> A (List A) (List A))]))
-                  '(data List ([A : U])
+    (check-equal? (p #'(data (List [A : Type])
+                             [nil : (List A)]
+                             [:: : (A (List A) -> (List A))]))
+                  '(data List ([A : Type])
                          [nil : (List A)]
-                         [cons : (A (List A) -> (List A))]))
+                         [:: : (A (List A) -> (List A))]))
     (check-equal? (p #'((s z) : Nat)) '((s z) is-a? Nat))
     (check-equal? (p #'(claim a Nat)) '(claim a Nat))
     (check-equal? (p #'(define a z)) '(define a z))))
