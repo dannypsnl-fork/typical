@@ -86,6 +86,16 @@
         [(app ,stx ,expr ,expr* ...) stx])
   (Expr e))
 
+(define-pass convert-ty : (Typical Type) (t) -> * ()
+  (conv : Type (t) -> * ()
+        [(-> ,typ* ... ,typ)
+         `(-> ,@(map conv typ*) ,(conv typ))]
+        [(,typ* ...)
+         (map conv typ*)]
+        [,base
+         base])
+  (conv t))
+
 (module+ test
   (require rackunit)
 

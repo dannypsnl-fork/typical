@@ -6,24 +6,9 @@
          nanopass/base
          "lang.rkt"
          "env.rkt"
-         "subst.rkt"
+         "core.rkt"
          "helper.rkt")
 
-(define-pass convert-ty : (Typical Type) (t) -> * ()
-  (conv : Type (t) -> * ()
-        [(-> ,typ* ... ,typ)
-         `(-> ,@(map conv typ*) ,(conv typ))]
-        [(,typ* ...)
-         (map conv typ*)]
-        [,base
-         base])
-  (conv t))
-(define (replace-occur target #:occur occurs)
-  (match target
-    [`(,e* ...)
-     (map (λ (e) (replace-occur e #:occur occurs)) e*)]
-    [v (let ([new-v (hash-ref occurs v #f)])
-         (if new-v new-v v))]))
 (define-pass expand-data : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
         [(data ,stx ,name (,dependency* ...)
@@ -31,9 +16,10 @@
          (env/bind name 'Type)
          (define dep* (make-immutable-hash
                        (map (λ (d)
-                              (nanopass-case (Typical Bind) d
-                                             [(: ,name ,typ)
-                                              (cons (syntax-e name) (freevar (syntax-e name) (convert-ty typ)))]))
+                              (nanopass-case
+                               (Typical Bind) d
+                               [(: ,name ,typ)
+                                (cons (syntax-e name) (freevar (syntax-e name) (convert-ty typ)))]))
                             dependency*)))
          (for ([c constructor*])
            (Bind c dep*))
@@ -83,25 +69,6 @@
               (replace-occur typ #:occur (subst-resolve subst)))]
            [else (wrong-syntax expr "not appliable")])])
   (Expr e))
-
-(define (full-expand exp occurs)
-  (match exp
-    [`(,e* ...)
-     (map (λ (e) (full-expand e occurs)) e*)]
-    [v (let ([new-v (hash-ref occurs v #f)])
-         (if new-v (full-expand new-v occurs) v))]))
-(define (unify stx exp act #:subst [subst (make-subst)]
-               #:msg [msg (format "expected: ~a, but got: ~a" exp act)])
-  (match* {exp act}
-    [{(? freevar?) _} (subst-set! stx subst exp act)]
-    [{_ (? freevar?)} (unify stx act exp #:subst subst #:msg msg)]
-    [{`(,t1* ...) `(,t2* ...)}
-     (map (λ (t1 t2) (unify stx t1 t2 #:subst subst #:msg msg))
-          t1* t2*)]
-    [{_ _} (unless (equal? exp act)
-             (wrong-syntax stx msg))])
-  (full-expand exp (subst-resolve subst)))
-
 
 (module+ test
   (define final
