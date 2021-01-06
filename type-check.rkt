@@ -52,8 +52,7 @@
         [(define ,stx ,name ,expr)
          (unify stx (env/lookup name) (ty/infer expr))]
         [else (void)])
-  (Stmt t)
-  #t)
+  (Stmt t))
 
 (define-pass ty/infer : Typical (e) -> * ()
   (Expr : Expr (e) -> * (t)

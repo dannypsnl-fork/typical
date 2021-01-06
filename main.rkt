@@ -61,5 +61,4 @@
   (final #'(f : (Vec Bool (suc zero))))
   (final #'(f = (vec:: false vecnil)))
   (final #'(g : (Vec Bool (suc (suc zero)))))
-  (final #'(g = (vec:: true f)))
-  )
+  (final #'(g = (vec:: true f))))

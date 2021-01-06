@@ -8,7 +8,7 @@
       (foldl (λ (pass res)
                (let ([next (pass res)])
                  (unless next
-                   (return #f))
+                   (return))
                  next))
              in
              pass*))))
