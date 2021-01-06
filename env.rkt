@@ -31,5 +31,5 @@
   (require rackunit)
 
   (parameterize ([cur-env (make-env #f)])
-    (env/bind 'a 1)
-    (check-equal? (env/lookup 'a) 1)))
+    (env/bind #'a 1)
+    (check-equal? (env/lookup #'a) 1)))
