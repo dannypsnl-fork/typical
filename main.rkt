@@ -27,19 +27,10 @@
   (Stmt s))
 
 (module+ test
-  (define (final e)
-    (define parsed-e (parse e))
-    (define stmt?
-      ((compose-pass pass:expand-data
-                     pass:ty/bind
-                     pass:ty/check)
-       parsed-e))
-    (if stmt?
-        (displayln
-         ((compose-pass pass:remove-type-related
-                        pass:to-racket)
-          parsed-e))
-        (void)))
+  (define final (compose-pass parse
+                              pass:expand-data
+                              pass:ty/bind
+                              pass:ty/check))
 
   (final #'(data Nat
                  [zero : Nat]
@@ -63,4 +54,12 @@
   (final #'(d = (λ (n) n)))
   (final #'(e : Nat))
   (final #'(e = (d (suc (suc zero)))))
+
+  (final #'(data (Vec [A : Type] [N : Nat])
+                 [vecnil : (Vec A zero)]
+                 [vec:: : (A (Vec A N) -> (Vec A (suc N)))]))
+  (final #'(f : (Vec Bool (suc zero))))
+  (final #'(f = (vec:: false vecnil)))
+  (final #'(g : (Vec Bool (suc (suc zero)))))
+  (final #'(g = (vec:: true f)))
   )
