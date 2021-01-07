@@ -59,9 +59,9 @@
 (define-pass pass:ty/check : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
         [(is-a? ,stx ,expr ,typ)
-         (unify stx (convert-ty typ) (ty/infer expr))]
+         (unify (exp->stx expr) (convert-ty typ) (ty/infer expr))]
         [(define ,stx ,name ,expr)
-         (unify stx (env/lookup name) (ty/infer expr))]
+         (unify (exp->stx expr) (env/lookup name) (ty/infer expr))]
         [else (void)])
   (Stmt t))
 

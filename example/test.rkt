@@ -21,3 +21,7 @@
 (vecnil :? (Vec Nat zero))
 ((vec:: (suc zero) (vec:: zero vecnil)) :? (Vec Nat (suc (suc zero))))
 ((cons zero true) :? (Pair Nat Bool))
+
+(a : Nat)
+(a = zero)
+(a :? Nat)

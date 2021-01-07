@@ -43,19 +43,19 @@
 
 (define-pass parse : * (stx) -> Typical ()
   (Stmt : * (stx) -> Stmt (stmt)
-        (syntax-case stx (:? data : =)
-          [(expr :? typ)
-           `(is-a? ,stx ,(Expr #'expr) ,(Type #'typ))]
-          [(name : typ)
-           `(claim ,stx ,#'name ,(Type #'typ))]
-          [(name = expr)
-           `(define ,stx ,#'name ,(Expr #'expr))]
+        (syntax-case stx (data :? : =)
           [(data (name dep* ...) constructor* ...)
            `(data ,stx ,#'name (,(map Bind (syntax->list #'(dep* ...))) ...)
                   ,(map Bind (syntax->list #'(constructor* ...))) ...)]
           [(data name constructor* ...)
            `(data ,stx ,#'name ()
                   ,(map Bind (syntax->list #'(constructor* ...))) ...)]
+          [(expr :? typ)
+           `(is-a? ,stx ,(Expr #'expr) ,(Type #'typ))]
+          [(name : typ)
+           `(claim ,stx ,#'name ,(Type #'typ))]
+          [(name = expr)
+           `(define ,stx ,#'name ,(Expr #'expr))]
           [else (wrong-syntax stx "invalid statement")]))
   (Bind : * (stx) -> Bind (constructor)
         (syntax-case stx (:)
