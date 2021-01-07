@@ -43,7 +43,8 @@
 
 (define-pass parse : * (stx) -> Typical ()
   (Stmt : * (stx) -> Stmt (stmt)
-        (syntax-case stx (data :? : =)
+        (syntax-parse stx
+          #:datum-literals (data :? : =)
           [(data (name dep* ...) constructor* ...)
            `(data ,stx ,#'name (,(map Bind (syntax->list #'(dep* ...))) ...)
                   ,(map Bind (syntax->list #'(constructor* ...))) ...)]
