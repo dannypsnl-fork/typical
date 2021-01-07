@@ -22,6 +22,8 @@
 (define-syntax (module-begin stx)
   (syntax-case stx ()
     [(e* ...)
+     ;;; type checking
+     ; cdr to skip #%module-begin
      (for ([e (cdr (syntax->list #'(e* ...)))])
        (tc e))
      #'(#%module-begin
