@@ -1,6 +1,7 @@
 #lang racket/base
 
-(provide (all-defined-out))
+(provide (all-from-out)
+         (all-defined-out))
 
 (require nanopass/base
          racket/match
@@ -8,6 +9,16 @@
          "lang.rkt"
          "core.rkt"
          "env.rkt")
+
+(define-pass convert-ty : (Typical Type) (t) -> * ()
+  (conv : Type (t) -> * ()
+        [(-> ,typ* ... ,typ)
+         `(-> ,@(map conv typ*) ,(conv typ))]
+        [(,typ* ...)
+         (map conv typ*)]
+        [,base
+         base])
+  (conv t))
 
 (define-pass pass:expand-data : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
@@ -68,12 +79,14 @@
                 ,(ty/infer expr)))]
         [(app ,stx ,expr ,expr* ...)
          (match (ty/infer expr)
-           [`(-> ,typ* ... ,typ)
+           [`(,typ* ... -> ,typ)
             (let ([subst (make-subst)]
                   [param-len (length typ*)]
                   [arg-len (length expr*)])
               (unless (= param-len arg-len)
-                (wrong-syntax stx (format "arity mismatched, expected ~a, given ~a" param-len arg-len)))
+                (raise-syntax-error 'semantic (format "arity mismatched, expected ~a, given ~a" param-len arg-len)
+                                    stx
+                                    (exp->stx expr)))
               (for ([t typ*]
                     [e expr*])
                 (unify (exp->stx e) t (ty/infer e) #:subst subst))
