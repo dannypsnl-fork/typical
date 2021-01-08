@@ -1,6 +1,6 @@
 #lang racket
 
-(provide (except-out (all-from-out racket) #%module-begin #%top-interaction =)
+(provide (except-out (all-from-out racket) #%module-begin #%top-interaction)
          (rename-out [module-begin #%module-begin]
                      [top-interaction #%top-interaction]))
 
