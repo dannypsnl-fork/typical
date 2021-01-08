@@ -1,5 +1,5 @@
 #lang scribble/manual
-@require[@for-label[typical]]
+@require[@for-label[racket/base]]
 
 @title{typical}
 @author{Lîm Tsú-thuàn}
