@@ -1,3 +1,10 @@
+#|
+* At the first step, multiple entries mapping was created, which means ?a -> ?b and ?a -> Nat existed at the same time was allowed(let ?a stands for a free variable with a tag a).
+* Then in the second step, only replace the free with the bound, then leave free to free.
+* In the third step, replace all entries with bound, then check any entries still is free?
+  * yes, then meta(value) unsolvable
+  * no, reverse key-value and bound
+|#
 #lang racket/base
 
 (require racket/match
