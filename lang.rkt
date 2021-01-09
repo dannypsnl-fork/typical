@@ -34,11 +34,8 @@
         ;; application
         (app stx expr expr* ...) => (expr expr* ...))
   (Type (typ)
-        ;; base
         base
-        ;; polymorphism
         (typ* ...)
-        ;; arrow
         (-> typ* ... typ) => (typ* ... -> typ)))
 
 (define-pass parse : * (stx) -> Typical ()
@@ -64,7 +61,8 @@
            `(: ,#'name ,(Type #'typ))]
           [else (wrong-syntax stx "bad binding")]))
   (Expr : * (stx) -> Expr (expr)
-        (syntax-case stx (λ)
+        (syntax-parse stx
+          #:datum-literals (λ)
           [(λ (param* ...) exp)
            `(λ ,stx (,(map Expr (syntax->list #'(param* ...))) ...) ,(Expr #'exp))]
           [(f arg* ...)
