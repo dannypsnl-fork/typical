@@ -13,7 +13,7 @@
 (define-pass convert-ty : (Typical Type) (t) -> * ()
   (conv : Type (t) -> * ()
         [(-> ,typ* ... ,typ)
-         `(-> ,@(map conv typ*) ,(conv typ))]
+         `(,@(map conv typ*) -> ,(conv typ))]
         [(,typ* ...)
          (map conv typ*)]
         [,base
@@ -74,9 +74,10 @@
            (for ([p param*]
                  [pt param-typ*])
              (env/bind p pt))
-           `(-> ,@param-typ*
-                ; return type
-                ,(ty/infer expr)))]
+           `(,@param-typ*
+             ->
+             ; return type
+             ,(ty/infer expr)))]
         [(app ,stx ,expr ,expr* ...)
          (match (ty/infer expr)
            [`(,typ* ... -> ,typ)
