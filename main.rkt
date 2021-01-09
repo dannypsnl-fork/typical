@@ -34,6 +34,14 @@
          #`(define (#,name . arg*)
              `(e ,@arg*))]
         [else #`(define #,name 'e)]))]))
+(define-for-syntax (expand-expr e)
+  (nanopass-case
+   (L1 Expr) e
+   [(λ ,stx (,param* ...) ,expr)
+    #`(λ (#,@param*) #,(expand-expr expr))]
+   [(app ,stx ,expr ,expr* ...)
+    #`(#,(expand-expr expr) #,@(map expand-expr expr*))]
+   [,name name]))
 (define-for-syntax (pass:to-racket s)
   (nanopass-case
    (L1 Stmt) s
@@ -43,13 +51,9 @@
         (define #,name '#,(syntax->datum name))
         #,@(map define-constructor constructor*))]
    [(is-a? ,stx ,expr ,typ)
-    ;; FIXME: expand expr
-    expr]
+    (expand-expr expr)]
    [(define ,stx ,name ,expr)
-    `(define ,(syntax-e name) ,expr)
-    ;; FIXME: expand expr
-    (with-syntax ([e (unparse-L1 expr)])
-      #`(define #,name 'e))]))
+    #`(define #,name #,(expand-expr expr))]))
 (define-for-syntax (expand-to-racket stx)
   (compose-pass* stx (list pass:remove-claim
                            pass:Typical->L1
