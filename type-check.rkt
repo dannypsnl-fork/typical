@@ -11,14 +11,7 @@
          "env.rkt")
 
 (define-pass convert-ty : (Typical Type) (t) -> * ()
-  (conv : Type (t) -> * ()
-        [(-> ,typ* ... ,typ)
-         `(,@(map conv typ*) -> ,(conv typ))]
-        [(,typ* ...)
-         (map conv typ*)]
-        [,base
-         base])
-  (conv t))
+  (unparse-Typical t))
 
 (define-pass pass:expand-data : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
