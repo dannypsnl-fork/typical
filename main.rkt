@@ -38,7 +38,9 @@
   (nanopass-case
    (L1 Stmt) s
    [(data ,stx ,name (,dependency* ...) ,constructor* ...)
+    ;; FIXME: make type function when dependency existed
     #`(begin
+        (define #,name '#,(syntax->datum name))
         #,@(map define-constructor constructor*))]
    [(is-a? ,stx ,expr ,typ)
     ;; FIXME: expand expr
