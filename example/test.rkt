@@ -25,3 +25,6 @@
 (a : Nat)
 (a = zero)
 (a :? Nat)
+
+(id-Nat : (Nat -> Nat))
+(id-Nat = (λ (n) n))
