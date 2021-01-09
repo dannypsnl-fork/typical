@@ -15,7 +15,7 @@
          [binding* (env-cur-map (cur-env))]
          [bound? (hash-ref binding* name #f)])
     (unless (not bound?)
-      (error 'env "redefined: `~a`" id))
+      (raise-syntax-error 'semantic (format "redefined `~a`" id) id))
     (hash-set! binding* name val)))
 (define (env/lookup id)
   (let* ([name (syntax-e id)]
@@ -25,7 +25,7 @@
               (λ () (if parent
                         (parameterize ([cur-env parent])
                           (env/lookup id))
-                        (wrong-syntax id "not found"))))))
+                        (raise-syntax-error 'semantic (format "`~a` not found" id) id))))))
 
 (module+ test
   (require rackunit)
