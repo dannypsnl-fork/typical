@@ -33,6 +33,4 @@
 - strictly positive of data type
 - dependent function in claim type
 - termination checking
-- expand to racket to get evaluated result
-- lambda
 - pattern matching
