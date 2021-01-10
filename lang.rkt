@@ -31,8 +31,15 @@
         name
         ;; abstraction
         (λ stx (param* ...) expr) => (λ (param* ...) expr)
+        (match stx expr clause* ...) => (match expr clause* ...)
         ;; application
         (app stx expr expr* ...) => (expr expr* ...))
+  (Clause (clause)
+          (+> pat* ... expr) => (pat* ... +> expr))
+  (Pattern (pat)
+           name
+           (intro name)
+           (name pat* ...))
   (Type (typ)
         base
         (typ* ...)
@@ -62,15 +69,36 @@
           [else (wrong-syntax stx "bad binding")]))
   (Expr : * (stx) -> Expr (expr)
         (syntax-parse stx
-          #:datum-literals (λ)
+          #:datum-literals (λ match)
           [(λ (param* ...) exp)
            `(λ ,stx (,(map Expr (syntax->list #'(param* ...))) ...) ,(Expr #'exp))]
+          [(match exp clause* ...)
+           `(match ,stx ,(Expr #'exp)
+              ,(map Clause (syntax->list #'(clause* ...))) ...)]
           [(f arg* ...)
            `(app ,stx ,(Expr #'f) ,(map Expr (syntax->list #'(arg* ...))) ...)]
           [_
            (cond
              [(identifier? stx) stx]
              [else (wrong-syntax stx "invalid expression")])]))
+  (Clause : * (stx) -> Clause (clause)
+          (syntax-parse stx
+            #:datum-literals (=>)
+            [(pat* ... => exp)
+             `(+> ,(map Pattern (syntax->list #'(pat* ...))) ... ,(Expr #'exp))]
+            [else (wrong-syntax stx "invalid clause")]))
+  (Pattern : * (stx) -> Pattern (pat)
+           (syntax-parse stx
+             #:datum-literals (unquote)
+             [(unquote name:id)
+              `(intro ,#'name)]
+             ; (suc ,n)
+             ; (suc (suc ,n))
+             ; (suc zero)
+             [(name:id pat* ...)
+              `(,#'name ,(map Pattern (syntax->list #'(pat* ...))) ...)]
+             [name:id #'name]
+             [else (wrong-syntax stx "invalid pattern")]))
   (Type : * (stx) -> Type (typ)
         (syntax-case stx (->)
           [(typ* ... -> typ)
@@ -87,13 +115,13 @@
   (Expr : Expr (e) -> * (t)
         [,name name]
         [(λ ,stx (,param* ...) ,expr) stx]
+        [(match ,stx ,expr ,clause* ...) stx]
         [(app ,stx ,expr ,expr* ...) stx])
   (Expr e))
 
 (module+ test
   (require rackunit)
 
-  (define-parser _ Typical)
   (let ([p (λ (e) (unparse-Typical (parse e)))])
     (check-equal? (p #'(data (List [A : Type])
                              [nil : (List A)]
@@ -103,4 +131,15 @@
                          [:: : (A (List A) -> (List A))]))
     (check-equal? (p #'((s z) :? Nat)) '((s z) is-a? Nat))
     (check-equal? (p #'(a : Nat)) '(claim a Nat))
-    (check-equal? (p #'(a = z)) '(define a z))))
+    (check-equal? (p #'(a = z)) '(define a z))
+
+    (check-equal? (p #'(id = (λ (n) n))) '(define id (λ (n) n)))
+    (check-equal? (p #'(is-zero? = (λ (n)
+                                     (match n
+                                       [zero => true]
+                                       [(suc ,n) => false]))))
+                  '(define is-zero?
+                     (λ (n)
+                       (match n
+                         [zero +> true]
+                         [(suc (intro n)) +> false]))))))

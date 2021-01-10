@@ -71,6 +71,9 @@
              ->
              ; return type
              ,(ty/infer expr)))]
+        [(match ,stx ,expr ,clause* ...)
+         (raise-syntax-error 'unimplemented ""
+                             stx)]
         [(app ,stx ,expr ,expr* ...)
          (match (ty/infer expr)
            [`(,typ* ... -> ,typ)
