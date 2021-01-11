@@ -34,12 +34,35 @@
          #`(define (#,name . arg*)
              `(e ,@arg*))]
         [else #`(define #,name 'e)]))]))
+;;; expand pattern return a
+; (stx: syntax? . quasi?: boolean?)
+; `quasi?` tell the top layer add quasi-quote or not
+(define-for-syntax (expand-pattern p)
+  (nanopass-case
+   (L1 Pattern) p
+   [,name (cons name #f)]
+   [(intro ,name)
+    (cons #`,#,name #t)]
+   [(,name ,pat* ...)
+    (define expanded-pat* (map expand-pattern pat*))
+    (cons #`(#,name #,@(map car expanded-pat*))
+          (ormap cdr expanded-pat*))]))
+(define-for-syntax (expand-clause c)
+  (nanopass-case
+   (L1 Clause) c
+   [(+> ,stx ,pat* ... ,expr)
+    #`[{#,@(map (λ (pat)
+                  (match-let ([(cons stx quasi?) (expand-pattern pat)])
+                    (if quasi?
+                        #``#,stx
+                        stx)))
+                pat*)} #,(expand-expr expr)]]))
 (define-for-syntax (expand-expr e)
   (nanopass-case
    (L1 Expr) e
    [(match ,stx (,expr* ...) ,clause* ...)
-    (raise-syntax-error 'unimplement ""
-                        stx)]
+    #`(match* {#,@expr*}
+        #,@(map expand-clause clause*))]
    [(λ ,stx (,param* ...) ,expr)
     #`(λ (#,@param*) #,(expand-expr expr))]
    [(app ,stx ,expr ,expr* ...)
