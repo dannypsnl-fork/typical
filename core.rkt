@@ -14,16 +14,19 @@
      (map (λ (e) (full-expand e occurs)) e*)]
     [v (let ([new-v (hash-ref occurs v #f)])
          (if new-v (full-expand new-v occurs) v))]))
-(define (unify stx exp act #:subst [subst (make-subst)])
+(define (unify stx exp act
+               #:subst [subst (make-subst)]
+               #:solve? [solve? #t])
   (match* {exp act}
     [{(? freevar?) _} (subst-set! stx subst exp act)]
-    [{_ (? freevar?)} (unify stx act exp #:subst subst)]
+    [{_ (? freevar?)} (unify stx act exp #:subst subst #:solve? solve?)]
     [{`(,t1* ...) `(,t2* ...)}
-     (map (λ (t1 t2) (unify stx t1 t2 #:subst subst))
+     (map (λ (t1 t2) (unify stx t1 t2 #:subst subst #:solve? solve?))
           t1* t2*)]
     [{_ _} (unless (equal? exp act)
              (wrong-syntax stx (format "expected: ~a, but got: ~a" exp act)))])
-  (full-expand exp (subst-resolve subst)))
+  (when solve?
+    (full-expand exp (subst-resolve subst stx))))
 (define (replace-occur target #:occur occurs)
   (match target
     [`(,e* ...)
