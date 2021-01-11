@@ -40,7 +40,7 @@
 (define-for-syntax (expand-pattern p)
   (nanopass-case
    (L1 Pattern) p
-   [,name (cons name #f)]
+   [,name (cons #`(== #,name) #f)]
    [(intro ,name)
     (cons #`,#,name #t)]
    [(,name ,pat* ...)
@@ -56,7 +56,8 @@
                     (if quasi?
                         #``#,stx
                         stx)))
-                pat*)} #,(expand-expr expr)]]))
+                pat*)}
+       #,(expand-expr expr)]]))
 (define-for-syntax (expand-expr e)
   (nanopass-case
    (L1 Expr) e

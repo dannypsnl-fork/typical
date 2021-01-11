@@ -35,3 +35,4 @@
      (match {n m}
        [zero ,m => m]
        [(suc ,n) ,m => (suc (+ n m))])))
+((+ (suc zero) (suc (suc zero))) :? Nat)
