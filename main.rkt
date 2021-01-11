@@ -40,23 +40,15 @@
 (define-for-syntax (expand-pattern p)
   (nanopass-case
    (L1 Pattern) p
-   [,name (cons #`(== #,name) #f)]
-   [(intro ,name)
-    (cons #`,#,name #t)]
+   [,name #`,(== #,name)]
+   [(intro ,name) #`,#,name]
    [(,name ,pat* ...)
-    (define expanded-pat* (map expand-pattern pat*))
-    (cons #`(#,name #,@(map car expanded-pat*))
-          (ormap cdr expanded-pat*))]))
+    #`(#,name #,@(map expand-pattern pat*))]))
 (define-for-syntax (expand-clause c)
   (nanopass-case
    (L1 Clause) c
    [(+> ,stx ,pat* ... ,expr)
-    #`[{#,@(map (λ (pat)
-                  (match-let ([(cons stx quasi?) (expand-pattern pat)])
-                    (if quasi?
-                        #``#,stx
-                        stx)))
-                pat*)}
+    #`[{#,@(map (λ (pat) #``#,(expand-pattern pat)) pat*)}
        #,(expand-expr expr)]]))
 (define-for-syntax (expand-expr e)
   (nanopass-case
