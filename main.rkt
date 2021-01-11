@@ -34,9 +34,6 @@
          #`(define (#,name . arg*)
              `(e ,@arg*))]
         [else #`(define #,name 'e)]))]))
-;;; expand pattern return a
-; (stx: syntax? . quasi?: boolean?)
-; `quasi?` tell the top layer add quasi-quote or not
 (define-for-syntax (expand-pattern p)
   (nanopass-case
    (L1 Pattern) p
