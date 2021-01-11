@@ -59,7 +59,46 @@
   (Stmt t))
 
 (define-pass ty/infer : Typical (e) -> * ()
+  (Clause : Clause (c sym* subst) -> * (t)
+          [(+> ,stx ,pat* ... ,expr)
+           (parameterize ([cur-env (make-env)])
+             (for ([s sym*]
+                   [p pat*])
+               (unify stx (env/lookup s) (Pattern p subst)
+                      #:subst subst
+                      #:solve? #f))
+             (Expr expr))])
+  (Pattern : Pattern (p subst) -> * (t)
+           [,name (env/lookup name)]
+           [(intro ,name)
+            (define cur-ty (freevar (gensym (syntax->datum name))))
+            (env/bind name cur-ty)
+            cur-ty]
+           [(,name ,pat* ...)
+            (define ret-ty (freevar (gensym 'ret)))
+            (unify name
+                   (env/lookup name) `(,@(map (λ (p) (Pattern p subst)) pat*) -> ,ret-ty)
+                   #:subst subst
+                   #:solve? #f)
+            ret-ty])
   (Expr : Expr (e) -> * (t)
+        [(match ,stx (,expr* ...) ,clause* ...)
+         (define subst (make-subst))
+         (parameterize ([cur-env (make-env)])
+           (define sym* (generate-temporaries expr*))
+           ; bind a generated symbols for match targets
+           (for ([s sym*]
+                 [e expr*])
+             (env/bind s (ty/infer e)))
+           (foldl (λ (c current-typ)
+                    (unify stx
+                           current-typ
+                           (Clause c sym* subst)
+                           #:subst subst
+                           #:solve? #f))
+                  ;; current-typ starts from a free variable
+                  (freevar 'match)
+                  clause*))]
         [,name (env/lookup name)]
         [(λ ,stx (,param* ...) ,expr)
          (parameterize ([cur-env (make-env)])
@@ -71,9 +110,6 @@
              ->
              ; return type
              ,(ty/infer expr)))]
-        [(match ,stx ,expr ,clause* ...)
-         (raise-syntax-error 'unimplemented ""
-                             stx)]
         [(app ,stx ,expr ,expr* ...)
          (match (ty/infer expr)
            [`(,typ* ... -> ,typ)
@@ -87,6 +123,6 @@
               (for ([t typ*]
                     [e expr*])
                 (unify (exp->stx e) t (ty/infer e) #:subst subst))
-              (replace-occur typ #:occur (subst-resolve subst)))]
+              (replace-occur typ #:occur (subst-resolve subst stx)))]
            [else (wrong-syntax (exp->stx expr) "not appliable")])])
   (Expr e))

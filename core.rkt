@@ -25,8 +25,9 @@
           t1* t2*)]
     [{_ _} (unless (equal? exp act)
              (wrong-syntax stx (format "expected: ~a, but got: ~a" exp act)))])
-  (when solve?
-    (full-expand exp (subst-resolve subst stx))))
+  (if solve?
+    (full-expand exp (subst-resolve subst stx))
+    exp))
 (define (replace-occur target #:occur occurs)
   (match target
     [`(,e* ...)

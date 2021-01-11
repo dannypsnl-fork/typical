@@ -28,3 +28,10 @@
 
 (id-Nat : (Nat -> Nat))
 (id-Nat = (λ (n) n))
+
+(+ : (Nat Nat -> Nat))
+(+ =
+   (λ (n m)
+     (match {n m}
+       [zero ,m => m]
+       [(suc ,n) ,m => (suc (+ n m))])))

@@ -37,6 +37,9 @@
 (define-for-syntax (expand-expr e)
   (nanopass-case
    (L1 Expr) e
+   [(match ,stx (,expr* ...) ,clause* ...)
+    (raise-syntax-error 'unimplement ""
+                        stx)]
    [(λ ,stx (,param* ...) ,expr)
     #`(λ (#,@param*) #,(expand-expr expr))]
    [(app ,stx ,expr ,expr* ...)
