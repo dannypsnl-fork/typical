@@ -31,13 +31,14 @@
      (hash-set! (subst-bound-map subst) key value)]))
 
 (provide subst-resolve)
-(define (subst-resolve subst)
+(define (subst-resolve subst stx)
   (define resolved-map (make-hash))
   (hash-for-each (subst-free-map subst)
                  (λ (k v*)
                    (let ([bound? (hash-ref (subst-bound-map subst) k #f)])
                      (unless bound?
-                       (error 'semantic "~a unsolvable" v*))
+                       (raise-syntax-error 'substitute (format "~a unsolvable" v*)
+                                           stx))
                      (for ([v v*])
                        (hash-set! resolved-map v bound?)))))
   (hash-union! resolved-map (subst-bound-map subst)
