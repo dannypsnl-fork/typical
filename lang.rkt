@@ -31,11 +31,11 @@
         name
         ;; abstraction
         (λ stx (param* ...) expr) => (λ (param* ...) expr)
-        (match stx expr clause* ...) => (match expr clause* ...)
+        (match stx (expr* ...) clause* ...) => (match (expr* ...) clause* ...)
         ;; application
         (app stx expr expr* ...) => (expr expr* ...))
   (Clause (clause)
-          (+> pat* ... expr) => (pat* ... +> expr))
+          (+> stx pat* ... expr) => (pat* ... +> expr))
   (Pattern (pat)
            name
            (intro name)
@@ -72,8 +72,11 @@
           #:datum-literals (λ match)
           [(λ (param* ...) exp)
            `(λ ,stx (,(map Expr (syntax->list #'(param* ...))) ...) ,(Expr #'exp))]
+          [(match {exp* ...} clause* ...)
+           `(match ,stx (,(map Expr (syntax->list #'(exp* ...))) ...)
+              ,(map Clause (syntax->list #'(clause* ...))) ...)]
           [(match exp clause* ...)
-           `(match ,stx ,(Expr #'exp)
+           `(match ,stx (,(Expr #'exp))
               ,(map Clause (syntax->list #'(clause* ...))) ...)]
           [(f arg* ...)
            `(app ,stx ,(Expr #'f) ,(map Expr (syntax->list #'(arg* ...))) ...)]
@@ -85,7 +88,7 @@
           (syntax-parse stx
             #:datum-literals (=>)
             [(pat* ... => exp)
-             `(+> ,(map Pattern (syntax->list #'(pat* ...))) ... ,(Expr #'exp))]
+             `(+> ,stx ,(map Pattern (syntax->list #'(pat* ...))) ... ,(Expr #'exp))]
             [else (wrong-syntax stx "invalid clause")]))
   (Pattern : * (stx) -> Pattern (pat)
            (syntax-parse stx
@@ -115,7 +118,7 @@
   (Expr : Expr (e) -> * (t)
         [,name name]
         [(λ ,stx (,param* ...) ,expr) stx]
-        [(match ,stx ,expr ,clause* ...) stx]
+        [(match ,stx (,expr* ...) ,clause* ...) stx]
         [(app ,stx ,expr ,expr* ...) stx])
   (Expr e))
 
@@ -140,6 +143,6 @@
                                        [(suc ,n) => false]))))
                   '(define is-zero?
                      (λ (n)
-                       (match n
+                       (match {n}
                          [zero +> true]
                          [(suc (intro n)) +> false]))))))
