@@ -61,3 +61,10 @@
 ((fib (suc (suc (suc (suc zero))))) :? Nat)
 ; 5 -> 8
 ((fib (suc (suc (suc (suc (suc zero)))))) :? Nat)
+
+(ack : (Nat Nat -> Nat))
+(ack = (λ (n m)
+  (match {n m}
+    [zero ,m => (suc m)]
+    [(suc ,n) zero => (ack n (suc zero))]
+    [(suc ,n) (suc ,m) => (ack n (ack (suc n) m))])))

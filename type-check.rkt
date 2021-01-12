@@ -164,7 +164,7 @@
                 (for-each check expr*)
                 (when (equal? (syntax->datum name) (syntax-e expr))
                   ; a recursive call
-                  (unless (< (apply + (map infer expr*)) 0)
+                  (unless (and (ormap (λ (e) (< (infer e) 0)) expr*))
                     (raise-syntax-error 'termination "cannot prove termination"
                                         stx)))]
                [else (void)])
