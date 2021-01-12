@@ -5,9 +5,9 @@
 
 (require (for-syntax nanopass/base
                      racket/match
-                     "lang.rkt"
-                     "type-check.rkt"
-                     "backend.rkt"))
+                     "private/lang.rkt"
+                     "private/type-check.rkt"
+                     "private/backend.rkt"))
 
 (define-for-syntax (compose-pass* stx pass*)
   (let ([r (parse stx)]
