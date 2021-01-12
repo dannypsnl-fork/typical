@@ -14,6 +14,10 @@
       [vec:: : (A (Vec A N) -> (Vec A (suc N)))])
 (data (Pair [A : Type] [B : Type])
       [cons : (A B -> (Pair A B))])
+(data (= [A : Type] [a : A] [b : A])
+      [refl : (A -> (= A a a))])
+
+((refl zero) :? (= Nat zero zero))
 
 (zero :? Nat)
 ((suc zero) :? Nat)
