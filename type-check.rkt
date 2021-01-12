@@ -56,7 +56,8 @@
         [(define ,stx ,name ,expr)
          (unify (exp->stx expr) (env/lookup name) (ty/infer expr))]
         [else (void)])
-  (Stmt t))
+  (Stmt t)
+  t)
 
 (define-pass ty/infer : Typical (e) -> * ()
   (Clause : Clause (c sym* subst) -> * (t)
@@ -125,4 +126,55 @@
                 (unify (exp->stx e) t (ty/infer e) #:subst subst))
               (replace-occur typ #:occur (subst-resolve subst stx)))]
            [else (wrong-syntax (exp->stx expr) "not appliable")])])
+  (Expr e))
+
+(define-pass pass:termination-check : Typical (t) -> * ()
+  (Stmt : Stmt (t) -> * ()
+        [(define ,stx ,name ,expr)
+         (parameterize ([cur-env (make-env #f)])
+           (nanopass-case
+            (Typical Expr) expr
+            [(λ ,stx (,param* ...) ,expr)
+             ; 1. binding param* with random number as init level
+             (for ([p param*])
+               (env/bind p 0))
+             ; 2. check expr
+             (check-terminate expr name)]
+            ; skip non-λ case since no recursion can happen
+            [else (void)]))]
+        ; skip non-define since no recursion can happen
+        [else (void)])
+  (Stmt t)
+  t)
+
+(define-pass check-terminate : Typical (e name) -> * ()
+  (bind-level : Pattern (p level) -> * ()
+           [,name (void)]
+           [(intro ,name)
+            (env/bind name level)]
+           [(,name ,pat* ...)
+            (for-each (λ (p) (bind-level p (- level 1))) pat*)])
+  (infer : Expr (e) -> * (l)
+               [(app ,stx ,expr ,expr* ...)
+                (+ 1 (apply max (map infer expr*)))]
+               [,name (env/lookup name)]
+               [else 0])
+  (check : Expr (e) -> * ()
+               [(app ,stx ,expr ,expr* ...)
+                (for-each check expr*)
+                (when (equal? (syntax->datum name) (syntax-e expr))
+                  ; a recursive call
+                  (unless (< (apply + (map infer expr*)) 0)
+                    (raise-syntax-error 'termination "cannot prove termination"
+                                        stx)))]
+               [else (void)])
+  (check-clause : Clause (c) -> * ()
+          [(+> ,stx ,pat* ... ,expr)
+           (parameterize ([cur-env (make-env)])
+             (for-each (λ (p) (bind-level p 0)) pat*)
+             (check expr))])
+  (Expr : Expr (e) -> * ()
+        [(match ,stx (,expr* ...) ,clause* ...)
+         (for-each check-clause clause*)]
+        [else (check e)])
   (Expr e))

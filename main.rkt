@@ -21,7 +21,8 @@
 (define-for-syntax (tc stx)
   (compose-pass* stx (list pass:expand-data
                            pass:ty/bind
-                           pass:ty/check))
+                           pass:ty/check
+                           pass:termination-check))
   (void))
 
 (define-for-syntax (define-constructor b)
