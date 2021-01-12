@@ -37,3 +37,23 @@
        [(suc ,n) ,m => (suc (+ n m))])))
 ((+ (suc (suc zero)) (suc (suc zero))) :? Nat)
 ((+ (suc zero) (suc (suc zero))) :? Nat)
+
+(fib : (Nat -> Nat))
+(fib =
+     (λ (n)
+       (match n
+         [zero => (suc zero)]
+         [(suc zero) => (suc zero)]
+         [(suc (suc ,n)) => (+ (fib (suc n)) (fib n))])))
+; 0 -> 1
+((fib zero) :? Nat)
+; 1 -> 1
+((fib (suc zero)) :? Nat)
+; 2 -> 2
+((fib (suc (suc zero))) :? Nat)
+; 3 -> 3
+((fib (suc (suc (suc zero)))) :? Nat)
+; 4 -> 5
+((fib (suc (suc (suc (suc zero))))) :? Nat)
+; 5 -> 8
+((fib (suc (suc (suc (suc (suc zero)))))) :? Nat)
