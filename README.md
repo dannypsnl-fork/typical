@@ -32,4 +32,3 @@
 
 - strictly positive of data type
 - dependent function in claim type
-- termination checking
