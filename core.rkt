@@ -21,6 +21,9 @@
     [{(? freevar?) _} (subst-set! stx subst exp act)]
     [{_ (? freevar?)} (unify stx act exp #:subst subst #:solve? solve?)]
     [{`(,t1* ...) `(,t2* ...)}
+     (unless (= (length t1*) (length t2*))
+       (raise-syntax-error 'semantic (format "cannot unify `~a` and `~a`" exp act)
+                           stx))
      (map (λ (t1 t2) (unify stx t1 t2 #:subst subst #:solve? solve?))
           t1* t2*)]
     [{_ _} (unless (equal? exp act)
