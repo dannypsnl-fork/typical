@@ -26,7 +26,7 @@
         (data stx name (dependency* ...)
               constructor* ...) => (data name (dependency* ...) constructor* ...))
   (Bind (dependency constructor)
-        (: name typ) => (name : typ))
+        (: name* ... typ) => (name* ... : typ))
   (Expr (expr)
         name
         ;; abstraction
@@ -64,8 +64,8 @@
           [else (wrong-syntax stx "invalid statement")]))
   (Bind : * (stx) -> Bind (constructor)
         (syntax-case stx (:)
-          [(name : typ)
-           `(: ,#'name ,(Type #'typ))]
+          [(name* ... : typ)
+           `(: ,(syntax->list #'(name* ...)) ... ,(Type #'typ))]
           [else (wrong-syntax stx "bad binding")]))
   (Expr : * (stx) -> Expr (expr)
         (syntax-parse stx

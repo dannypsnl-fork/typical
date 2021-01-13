@@ -6,6 +6,7 @@
 (require nanopass/base
          racket/match
          racket/syntax
+         racket/list
          "lang.rkt"
          "core.rkt"
          "env.rkt")
@@ -19,26 +20,28 @@
                ,constructor* ...)
          (env/bind name 'Type)
          (define dep* (make-immutable-hash
-                       (map (λ (d)
-                              (nanopass-case
-                               (Typical Bind) d
-                               [(: ,name ,typ)
-                                (cons (syntax-e name) (freevar (syntax-e name)))]))
-                            dependency*)))
+                       (append*
+                        (map (λ (d)
+                               (nanopass-case
+                                (Typical Bind) d
+                                [(: ,name* ... ,typ)
+                                 (map (λ (name)
+                                        (cons (syntax-e name) (freevar (syntax-e name))))
+                                      name*)]))
+                             dependency*))))
          (for ([c constructor*])
            (Bind c dep*))
          #f]
         [else t])
-  (extract-ty : Bind (b) -> * ()
-              [(: ,name ,typ)
-               (convert-ty typ)])
   (Bind : Bind (b dep*) -> * ()
-        [(: ,name ,typ)
+        [(: ,name* ... ,typ)
          (define ty
            (if (hash-empty? dep*)
                (convert-ty typ)
                (replace-occur (convert-ty typ) #:occur dep*)))
-         (env/bind name ty)])
+         (for-each (λ (name)
+                     (env/bind name ty))
+                   name*)])
   (Stmt t))
 
 (define-pass pass:ty/bind : Typical (t) -> * ()
@@ -149,30 +152,30 @@
 
 (define-pass check-terminate : Typical (e name) -> * ()
   (bind-level : Pattern (p level) -> * ()
-           [,name (void)]
-           [(intro ,name)
-            (env/bind name level)]
-           [(,name ,pat* ...)
-            (for-each (λ (p) (bind-level p (- level 1))) pat*)])
+              [,name (void)]
+              [(intro ,name)
+               (env/bind name level)]
+              [(,name ,pat* ...)
+               (for-each (λ (p) (bind-level p (- level 1))) pat*)])
   (infer : Expr (e) -> * (l)
-               [(app ,stx ,expr ,expr* ...)
-                (+ 1 (apply max (map infer expr*)))]
-               [,name (env/lookup name)]
-               [else 0])
+         [(app ,stx ,expr ,expr* ...)
+          (+ 1 (apply max (map infer expr*)))]
+         [,name (env/lookup name)]
+         [else 0])
   (check : Expr (e) -> * ()
-               [(app ,stx ,expr ,expr* ...)
-                (for-each check expr*)
-                (when (equal? (syntax->datum name) (syntax-e expr))
-                  ; a recursive call
-                  (unless (and (ormap (λ (e) (< (infer e) 0)) expr*))
-                    (raise-syntax-error 'termination "cannot prove termination"
-                                        stx)))]
-               [else (void)])
+         [(app ,stx ,expr ,expr* ...)
+          (for-each check expr*)
+          (when (equal? (syntax->datum name) (syntax-e expr))
+            ; a recursive call
+            (unless (and (ormap (λ (e) (< (infer e) 0)) expr*))
+              (raise-syntax-error 'termination "cannot prove termination"
+                                  stx)))]
+         [else (void)])
   (check-clause : Clause (c) -> * ()
-          [(+> ,stx ,pat* ... ,expr)
-           (parameterize ([cur-env (make-env)])
-             (for-each (λ (p) (bind-level p 0)) pat*)
-             (check expr))])
+                [(+> ,stx ,pat* ... ,expr)
+                 (parameterize ([cur-env (make-env)])
+                   (for-each (λ (p) (bind-level p 0)) pat*)
+                   (check expr))])
   (Expr : Expr (e) -> * ()
         [(match ,stx (,expr* ...) ,clause* ...)
          (for-each check-clause clause*)]

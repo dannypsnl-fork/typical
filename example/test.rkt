@@ -12,9 +12,9 @@
 (data (Vec [A : Type] [N : Nat])
       [vecnil : (Vec A zero)]
       [vec:: : (A (Vec A N) -> (Vec A (suc N)))])
-(data (Pair [A : Type] [B : Type])
+(data (Pair [A B : Type])
       [cons : (A B -> (Pair A B))])
-(data (= [A : Type] [a : A] [b : A])
+(data (= [A : Type] [a b : A])
       [refl : (A -> (= A a a))])
 
 ((refl zero) :? (= Nat zero zero))
@@ -64,7 +64,7 @@
 
 (ack : (Nat Nat -> Nat))
 (ack = (λ (n m)
-  (match {n m}
-    [zero ,m => (suc m)]
-    [(suc ,n) zero => (ack n (suc zero))]
-    [(suc ,n) (suc ,m) => (ack n (ack (suc n) m))])))
+         (match {n m}
+           [zero ,m => (suc m)]
+           [(suc ,n) zero => (ack n (suc zero))]
+           [(suc ,n) (suc ,m) => (ack n (ack (suc n) m))])))
