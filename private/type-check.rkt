@@ -65,7 +65,7 @@
 (define-pass ty/infer : Typical (e) -> * ()
   (Clause : Clause (c sym* subst) -> * (t)
           [(+> ,stx ,pat* ... ,expr)
-           (parameterize ([cur-env (make-env)])
+           (parameterize ([current-type-env (make-env)])
              (for ([s sym*]
                    [p pat*])
                (unify stx (env/lookup s) (Pattern p subst)
@@ -88,7 +88,7 @@
   (Expr : Expr (e) -> * (t)
         [(match ,stx (,expr* ...) ,clause* ...)
          (define subst (make-subst))
-         (parameterize ([cur-env (make-env)])
+         (parameterize ([current-type-env (make-env)])
            (define sym* (generate-temporaries expr*))
            ; bind a generated symbols for match targets
            (for ([s sym*]
@@ -105,7 +105,7 @@
                   clause*))]
         [,name (env/lookup name)]
         [(λ ,stx (,param* ...) ,expr)
-         (parameterize ([cur-env (make-env)])
+         (parameterize ([current-type-env (make-env)])
            (define param-typ* (map (λ (p) (freevar (syntax-e p))) param*))
            (for ([p param*]
                  [pt param-typ*])
@@ -134,7 +134,7 @@
 (define-pass pass:termination-check : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
         [(define ,stx ,name ,expr)
-         (parameterize ([cur-env (make-env #f)])
+         (parameterize ([current-type-env (make-env #f)])
            (nanopass-case
             (Typical Expr) expr
             [(λ ,stx (,param* ...) ,expr)
@@ -173,7 +173,7 @@
          [else (void)])
   (check-clause : Clause (c) -> * ()
                 [(+> ,stx ,pat* ... ,expr)
-                 (parameterize ([cur-env (make-env)])
+                 (parameterize ([current-type-env (make-env)])
                    (for-each (λ (p) (bind-level p 0)) pat*)
                    (check expr))])
   (Expr : Expr (e) -> * ()
