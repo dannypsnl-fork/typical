@@ -1,4 +1,4 @@
-#lang typical
+#lang typical/base
 
 (data Nat
       [zero : Nat]
