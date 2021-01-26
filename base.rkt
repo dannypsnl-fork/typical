@@ -1,7 +1,7 @@
 #lang racket
 
 (provide (except-out (all-from-out racket) #%module-begin)
-         (rename-out [module-begin #%module-begin]))
+         (rename-out [@#%module-begin #%module-begin]))
 
 (require (for-syntax nanopass/base
                      racket/match
@@ -73,7 +73,7 @@
 (define-for-syntax (expand-to-racket stx)
   (compose-pass* stx (list pass:to-racket)))
 
-(define-syntax (module-begin stx)
+(define-syntax (@#%module-begin stx)
   (syntax-case stx ()
     [(e* ...)
      ;;; type checking
