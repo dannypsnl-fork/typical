@@ -54,10 +54,16 @@
           [(data name:id constructor* ...)
            `(data ,stx ,#'name ()
                   ,(map Bind (syntax->list #'(constructor* ...))) ...)]
+          [(data name . rest)
+           (parameterize ([current-syntax-context stx])
+             (wrong-syntax #'name "expected an identifier"))]
           [(expr:expr :? typ)
            `(is-a? ,stx ,(Expr #'expr) ,(Type #'typ))]
           [(define name:id : typ expr:expr)
            `(define ,stx ,#'name ,(Type #'typ) ,(Expr #'expr))]
+          [(define name:id . rest)
+           (parameterize ([current-syntax-context stx])
+             (wrong-syntax #'rest "expected `:`"))]
           [else (wrong-syntax stx "invalid statement")]))
   (Bind : * (stx) -> Bind (constructor)
         (syntax-parse stx
@@ -134,9 +140,9 @@
                   '(define id (Nat -> Nat) (λ (n) n)))
     (check-equal? (p #'(define is-zero? : (Nat -> Bool)
                          (λ (n)
-                                     (match n
-                                       [zero => true]
-                                       [(suc ,n) => false]))))
+                           (match n
+                             [zero => true]
+                             [(suc ,n) => false]))))
                   '(define is-zero?
                      (Nat -> Bool)
                      (λ (n)
