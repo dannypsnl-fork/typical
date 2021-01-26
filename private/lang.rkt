@@ -19,10 +19,9 @@
   (Stmt (stmt)
         ;; (expr : typ)
         (is-a? stx expr typ) => (expr is-a? typ)
-        ;; (claim x : Nat)
-        (claim stx name typ) => (claim name typ)
-        ;; (define x z)
-        (define stx name expr) => (define name expr)
+        ;; (define x : Nat
+        ;;   z)
+        (define stx name typ expr) => (define name typ expr)
         (data stx name (dependency* ...)
               constructor* ...) => (data name (dependency* ...) constructor* ...))
   (Bind (dependency constructor)
@@ -48,7 +47,7 @@
 (define-pass parse : * (stx) -> Typical ()
   (Stmt : * (stx) -> Stmt (stmt)
         (syntax-parse stx
-          #:datum-literals (data :? : =)
+          #:datum-literals (data :? : define)
           [(data (name:id dep* ...) constructor* ...)
            `(data ,stx ,#'name (,(map Bind (syntax->list #'(dep* ...))) ...)
                   ,(map Bind (syntax->list #'(constructor* ...))) ...)]
@@ -57,10 +56,8 @@
                   ,(map Bind (syntax->list #'(constructor* ...))) ...)]
           [(expr:expr :? typ)
            `(is-a? ,stx ,(Expr #'expr) ,(Type #'typ))]
-          [(name:id : typ)
-           `(claim ,stx ,#'name ,(Type #'typ))]
-          [(name:id = expr:expr)
-           `(define ,stx ,#'name ,(Expr #'expr))]
+          [(define name:id : typ expr:expr)
+           `(define ,stx ,#'name ,(Type #'typ) ,(Expr #'expr))]
           [else (wrong-syntax stx "invalid statement")]))
   (Bind : * (stx) -> Bind (constructor)
         (syntax-parse stx
@@ -131,15 +128,17 @@
                          [nil : (List A)]
                          [:: : (A (List A) -> (List A))]))
     (check-equal? (p #'((s z) :? Nat)) '((s z) is-a? Nat))
-    (check-equal? (p #'(a : Nat)) '(claim a Nat))
-    (check-equal? (p #'(a = z)) '(define a z))
-
-    (check-equal? (p #'(id = (λ (n) n))) '(define id (λ (n) n)))
-    (check-equal? (p #'(is-zero? = (λ (n)
+    (check-equal? (p #'(define a : Nat z)) '(define a Nat z))
+    (check-equal? (p #'(define id : (Nat -> Nat)
+                         (λ (n) n)))
+                  '(define id (Nat -> Nat) (λ (n) n)))
+    (check-equal? (p #'(define is-zero? : (Nat -> Bool)
+                         (λ (n)
                                      (match n
                                        [zero => true]
                                        [(suc ,n) => false]))))
                   '(define is-zero?
+                     (Nat -> Bool)
                      (λ (n)
                        (match {n}
                          [zero +> true]

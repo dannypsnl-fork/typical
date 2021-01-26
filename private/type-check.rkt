@@ -46,7 +46,7 @@
 
 (define-pass pass:ty/bind : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
-        [(claim ,stx ,name ,typ)
+        [(define ,stx ,name ,typ ,expr)
          (env/bind name (convert-ty typ))
          #f]
         [else t])
@@ -56,7 +56,7 @@
   (Stmt : Stmt (t) -> * ()
         [(is-a? ,stx ,expr ,typ)
          (unify (exp->stx expr) (convert-ty typ) (ty/infer expr))]
-        [(define ,stx ,name ,expr)
+        [(define ,stx ,name ,typ ,expr)
          (unify (exp->stx expr) (env/lookup name) (ty/infer expr))]
         [else (void)])
   (Stmt t)
@@ -133,7 +133,7 @@
 
 (define-pass pass:termination-check : Typical (t) -> * ()
   (Stmt : Stmt (t) -> * ()
-        [(define ,stx ,name ,expr)
+        [(define ,stx ,name ,typ ,expr)
          (parameterize ([current-type-env (make-env #f)])
            (nanopass-case
             (Typical Expr) expr

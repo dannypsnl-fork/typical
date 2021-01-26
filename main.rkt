@@ -6,8 +6,7 @@
 (require (for-syntax nanopass/base
                      racket/match
                      "private/lang.rkt"
-                     "private/type-check.rkt"
-                     "private/backend.rkt"))
+                     "private/type-check.rkt"))
 
 (define-for-syntax (compose-pass* stx pass*)
   (let ([r (parse stx)]
@@ -27,30 +26,30 @@
 
 (define-for-syntax (define-constructor b)
   (nanopass-case
-   (L1 Bind) b
+   (Typical Bind) b
    [(: ,name ,typ)
     (with-syntax ([e (syntax->datum name)])
-      (match (unparse-L1 typ)
+      (match (unparse-Typical typ)
         [`(,typ* ... -> ,typ)
          #`(define (#,name . arg*)
              `(e ,@arg*))]
         [else #`(define #,name 'e)]))]))
 (define-for-syntax (expand-pattern p)
   (nanopass-case
-   (L1 Pattern) p
+   (Typical Pattern) p
    [,name #`,(== #,name)]
    [(intro ,name) #`,#,name]
    [(,name ,pat* ...)
     #`(#,name #,@(map expand-pattern pat*))]))
 (define-for-syntax (expand-clause c)
   (nanopass-case
-   (L1 Clause) c
+   (Typical Clause) c
    [(+> ,stx ,pat* ... ,expr)
     #`[{#,@(map (λ (pat) #``#,(expand-pattern pat)) pat*)}
        #,(expand-expr expr)]]))
 (define-for-syntax (expand-expr e)
   (nanopass-case
-   (L1 Expr) e
+   (Typical Expr) e
    [(match ,stx (,expr* ...) ,clause* ...)
     #`(match* {#,@expr*}
         #,@(map expand-clause clause*))]
@@ -61,7 +60,7 @@
    [,name name]))
 (define-for-syntax (pass:to-racket s)
   (nanopass-case
-   (L1 Stmt) s
+   (Typical Stmt) s
    [(data ,stx ,name (,dependency* ...) ,constructor* ...)
     ;; FIXME: make type function when dependency existed
     #`(begin
@@ -69,12 +68,10 @@
         #,@(map define-constructor constructor*))]
    [(is-a? ,stx ,expr ,typ)
     (expand-expr expr)]
-   [(define ,stx ,name ,expr)
+   [(define ,stx ,name ,typ ,expr)
     #`(define #,name #,(expand-expr expr))]))
 (define-for-syntax (expand-to-racket stx)
-  (compose-pass* stx (list pass:remove-claim
-                           pass:Typical->L1
-                           pass:to-racket)))
+  (compose-pass* stx (list pass:to-racket)))
 
 (define-syntax (module-begin stx)
   (syntax-case stx ()

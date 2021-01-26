@@ -10,16 +10,13 @@
         [suc : (Nat -> Nat)])
     ```
 
-2. claim/define pair to introduce user-defined variables
+2. `define` introduces user-defined variables
 
     ```racket
-    ; claim `a` is a `Nat`
-    (a : Nat)
     ; define `a` is `zero`
-    (a = zero)
+    (define a : Nat
+      zero)
     ```
-
-    claim a binding without a define is allowed, this case type checker simply believing the claim is correct no doubt.
 
 3. is-a judgement
 
@@ -31,4 +28,4 @@
 ### TODO
 
 - strictly positive of data type
-- dependent function in claim type
+- dependent function

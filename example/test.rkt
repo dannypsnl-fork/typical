@@ -26,29 +26,26 @@
 ((vec:: (suc zero) (vec:: zero vecnil)) :? (Vec Nat (suc (suc zero))))
 ((cons zero true) :? (Pair Nat Bool))
 
-(a : Nat)
-(a = zero)
-(a :? Nat)
+(define a : Nat
+  zero)
 
-(id-Nat : (Nat -> Nat))
-(id-Nat = (λ (n) n))
+(define id-Nat : (Nat -> Nat)
+  (λ (n) n))
 
-(+ : (Nat Nat -> Nat))
-(+ =
-   (λ (n m)
-     (match {n m}
-       [zero ,m => m]
-       [(suc ,n) ,m => (suc (+ n m))])))
+(define + : (Nat Nat -> Nat)
+  (λ (n m)
+    (match {n m}
+      [zero ,m => m]
+      [(suc ,n) ,m => (suc (+ n m))])))
 ((+ (suc (suc zero)) (suc (suc zero))) :? Nat)
 ((+ (suc zero) (suc (suc zero))) :? Nat)
 
-(fib : (Nat -> Nat))
-(fib =
-     (λ (n)
-       (match n
-         [zero => (suc zero)]
-         [(suc zero) => (suc zero)]
-         [(suc (suc ,n)) => (+ (fib (suc n)) (fib n))])))
+(define fib : (Nat -> Nat)
+  (λ (n)
+    (match n
+      [zero => (suc zero)]
+      [(suc zero) => (suc zero)]
+      [(suc (suc ,n)) => (+ (fib (suc n)) (fib n))])))
 ; 0 -> 1
 ((fib zero) :? Nat)
 ; 1 -> 1
@@ -62,9 +59,9 @@
 ; 5 -> 8
 ((fib (suc (suc (suc (suc (suc zero)))))) :? Nat)
 
-(ack : (Nat Nat -> Nat))
-(ack = (λ (n m)
-         (match {n m}
-           [zero ,m => (suc m)]
-           [(suc ,n) zero => (ack n (suc zero))]
-           [(suc ,n) (suc ,m) => (ack n (ack (suc n) m))])))
+(define ack : (Nat Nat -> Nat)
+  (λ (n m)
+    (match {n m}
+      [zero ,m => (suc m)]
+      [(suc ,n) zero => (ack n (suc zero))]
+      [(suc ,n) (suc ,m) => (ack n (ack (suc n) m))])))
