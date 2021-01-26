@@ -1,6 +1,7 @@
 #lang racket
 
-(provide (all-defined-out)
+(provide unify
+         replace-occur
          freevar
          make-subst
          subst-resolve)
