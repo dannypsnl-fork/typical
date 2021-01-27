@@ -27,5 +27,5 @@
 (begin-for-syntax
   (displayln (suc zero))
 
-  (displayln (suc false))
+  ;(displayln (suc false))
   )
