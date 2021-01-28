@@ -21,7 +21,8 @@
               any)))
 
 (begin-for-syntax
-  (require racket/match)
+  (require racket/match
+           racket/hash)
 
   (define-syntax-class type
     #:datum-literals (->)
@@ -29,28 +30,25 @@
     (pattern (name:id e*:type ...))
     (pattern (-> param*:type ... ret:type)))
 
+  (define-syntax-class bind
+    #:datum-literals (:)
+    (pattern (name*:id ... : typ:type)
+             #:attr map
+             (make-immutable-hash
+              (map (λ (name)
+                     (cons name (freevar name)))
+                   (map syntax->datum (syntax->list #'(name* ...)))))))
   (define-syntax-class data-clause
     #:datum-literals (:)
     (pattern (name:id : typ:type)
              #:attr val
              (match (syntax->datum #'typ)
-               [`(-> ,param* ... ,ret)
-                #'(λ (arg*)
-                    `(name ,@arg*))]
-               [ty #''name])))
-
-  (define-syntax-class bind
-    #:datum-literals (:)
-    (pattern (name:id : typ:type))))
+               [`(-> ,param* ... ,ret) #'(λ (arg*) `(name ,@arg*))]
+               [ty #''name]))))
 
 (define-syntax-parser data
   [(_ data-def ctor*:data-clause ...)
    (with-syntax ([ty-runtime #'(define-syntax (name stx) #'name)]
-                 [ctor-compiletime*
-                  #'(begin (define-for-syntax ctor*.name
-                             (syntax-property
-                              #'ctor*.val
-                              'type ctor*.typ)) ...)]
                  [ctor-runtime*
                   #'(begin (define-syntax (ctor*.name stx) ctor*.name) ...)])
      (syntax-parse #'data-def
@@ -58,16 +56,28 @@
         #'(begin
             (define-for-syntax name (syntax-property #'name 'type Type))
             ty-runtime
-            ctor-compiletime*
+            (define-for-syntax ctor*.name
+              (syntax-property
+               #'ctor*.val
+               'type ctor*.typ))
+            ...
             ctor-runtime*)]
        [(name:id bind*:bind ...)
-        #'(begin
-            (define-for-syntax bind*.name (freevar (gensym 'bind*.name))) ...
-            (define-for-syntax (name . arg*)
-              `(name ,@arg*))
-            ty-runtime
-            ctor-compiletime*
-            ctor-runtime*)]))])
+        (with-syntax
+            ([ctor-compiletime*
+              #`(begin
+                  (define-for-syntax ctor*.name
+                    (syntax-property
+                     #'ctor*.val
+                     'type (replace-occur
+                            'ctor*.typ
+                            #:occur #,(apply hash-union (attribute bind*.map))))) ...)])
+          #'(begin
+              (define-for-syntax (name . arg*)
+                `(name ,@arg*))
+              ty-runtime
+              ctor-compiletime*
+              ctor-runtime*))]))])
 
 (define-syntax-parser app
   [(_ f:expr arg*:expr ...)
