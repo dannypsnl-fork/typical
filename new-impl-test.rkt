@@ -7,6 +7,9 @@
 (data Nat
       [zero : Nat]
       [suc : (Nat . -> . Nat)])
+(data (List [A : Type])
+      [nil : (List A)]
+      [∷ : (A (List A) . -> . (List A))])
 
 false
 (app suc zero)
@@ -18,3 +21,5 @@ false
 (define n : Nat
   (app suc (app suc zero)))
 n
+
+;(check nil : (List Nat))

@@ -13,14 +13,21 @@
   (syntax-property #''Type 'type 'Type))
 (define-syntax (Type stx) Type)
 (define-for-syntax (-> . any)
-  `(-> ,@(map syntax->datum any)))
+  `(-> ,@(map (λ (ty)
+                (cond
+                  [(syntax? ty) (syntax->datum ty)]
+                  [else ty]))
+              any)))
 
 (begin-for-syntax
   (require racket/match)
 
+  (struct FreeVar (id) #:transparent)
+
   (define-syntax-class type
     #:datum-literals (->)
     (pattern name:id)
+    (pattern (name:id e*:type))
     (pattern (-> param*:type ... ret:type)))
 
   (define-syntax-class data-clause
@@ -31,45 +38,42 @@
                [`(-> ,param* ... ,ret)
                 #'(λ (arg*)
                     `(name ,@arg*))]
-               [ty #''name]))))
+               [ty #''name])))
+
+  (define-syntax-class bind
+    #:datum-literals (:)
+    (pattern (name:id : typ:type))))
 
 (define-syntax-parser data
-  [(_ name:id ctor*:data-clause ...)
-   #'(begin
-       (define-for-syntax name (syntax-property #'name 'type Type))
-       (define-syntax (name stx) name)
-       (define-for-syntax ctor*.name
-         (syntax-property #'ctor*.val
-                          'type ctor*.typ))
-       ...
-       (define-syntax (ctor*.name stx) ctor*.name)
-       ...)])
-
-(define-for-syntax (same-type? exp-ty act-ty
-                               this-syntax
-                               e)
-  (unless (equal? exp-ty act-ty)
-    (raise-syntax-error 'semantic
-                        (format "type mismatched, expected: ~a, but got: ~a" exp-ty act-ty)
-                        this-syntax
-                        e)))
+  [(_ data-def ctor*:data-clause ...)
+   (with-syntax ([ty-runtime #'(define-syntax (name stx) #'name)]
+                 [ctor-compiletime*
+                  #'(begin (define-for-syntax ctor*.name
+                             (syntax-property
+                              #'ctor*.val
+                              'type ctor*.typ)) ...)]
+                 [ctor-runtime*
+                  #'(begin (define-syntax (ctor*.name stx) ctor*.name) ...)])
+     (syntax-parse #'data-def
+       [name:id
+        #'(begin
+            (define-for-syntax name (syntax-property #'name 'type Type))
+            ty-runtime
+            ctor-compiletime*
+            ctor-runtime*)]
+       [(name:id bind*:bind ...)
+        #'(begin
+            (define-for-syntax bind*.name (FreeVar (gensym 'bind*.name))) ...
+            (define-for-syntax name (λ (arg*)
+                                      `(name ,@arg*)))
+            ty-runtime
+            ctor-compiletime*
+            ctor-runtime*)]))])
 
 (define-syntax-parser app
   [(_ f:expr arg*:expr ...)
-   (match (syntax-property (eval #'f) 'type)
-     [`(-> ,param-ty* ... ,ret-ty)
-      ; type check
-      (for ([arg (syntax->list #'(arg* ...))]
-            [exp-ty param-ty*])
-        (define act-ty (<-type arg))
-        (same-type? exp-ty act-ty
-                    this-syntax
-                    arg))
-      #'(apply f (list arg* ...))]
-     [else (raise-syntax-error 'semantic
-                               "not appliable"
-                               this-syntax
-                               #'f)])])
+   (<-type this-syntax)
+   #`(#,(eval #'f) (list arg* ...))])
 
 (define-syntax-parser define-
   #:datum-literals (:)
@@ -87,15 +91,32 @@
   #:datum-literals (:)
   [(_ expr:expr : typ:type)
    #'(begin
-       (define-for-syntax name typ)
+       (begin-for-syntax
+         typ)
        expr)])
 
+; type equality
+(define-for-syntax (same-type? exp-ty act-ty
+                               this-syntax
+                               e)
+  (unless (equal? exp-ty act-ty)
+    (raise-syntax-error 'semantic
+                        (format "type mismatched, expected: ~a, but got: ~a" exp-ty act-ty)
+                        this-syntax
+                        e)))
 ; type inference
 (define-for-syntax (<-type stx)
   (syntax-parse stx
     [(app f:expr arg*:expr ...)
      (match (syntax-property (eval #'f) 'type)
-       [`(-> ,param-ty* ... ,ret-ty) ret-ty]
+       [`(-> ,param-ty* ... ,ret-ty)
+        (for ([arg (syntax->list #'(arg* ...))]
+              [exp-ty param-ty*])
+          (define act-ty (<-type arg))
+          (same-type? exp-ty act-ty
+                      this-syntax
+                      arg))
+        ret-ty]
        [else (raise-syntax-error 'semantic
                                  "not appliable"
                                  this-syntax
