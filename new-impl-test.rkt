@@ -6,15 +6,15 @@
       [false : Bool])
 (data Nat
       [zero : Nat]
-      [suc : (Nat -> Nat)])
+      [suc : (Nat . -> . Nat)])
 
-(define empty-has-no-constructor : Empty)
+false
+(app suc zero)
+
 (define b : Bool
   true)
 (check b : Bool)
 
 (define n : Nat
-  (suc zero))
-(check n : Nat)
-
-(check (suc (suc (suc zero))) : Nat)
+  (app suc (app suc zero)))
+n
