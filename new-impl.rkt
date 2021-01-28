@@ -26,7 +26,7 @@
   (define-syntax-class type
     #:datum-literals (->)
     (pattern name:id)
-    (pattern (name:id e*:type))
+    (pattern (name:id e*:type ...))
     (pattern (-> param*:type ... ret:type)))
 
   (define-syntax-class data-clause

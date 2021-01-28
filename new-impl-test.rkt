@@ -11,7 +11,6 @@
       [nil : (List A)]
       [∷ : (A (List A) . -> . (List A))])
 
-false
 (app suc zero)
 
 (define b : Bool
@@ -23,4 +22,4 @@ false
 n
 
 (check nil : (List Nat))
-(check (app ∷ zero nil) : (List Nat))
+(check (app ∷ false nil) : (List Bool))
