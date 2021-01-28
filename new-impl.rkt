@@ -78,18 +78,22 @@
 (define-syntax-parser define-
   #:datum-literals (:)
   [(_ name:id : typ:type expr:expr)
-   (define exp-ty (syntax->datum #'typ))
-   (define act-ty (<-type #'expr))
-   (same-type? exp-ty act-ty
-               this-syntax
-               #'expr)
    #'(begin
-       (define-for-syntax name typ)
+       (check expr : typ)
+       (define-for-syntax name
+         (syntax-property #'expr
+                          'type
+                          typ))
        (define name expr))])
 
 (define-syntax-parser check
   #:datum-literals (:)
   [(_ expr:expr : typ:type)
+   (define exp-ty (syntax->datum #'typ))
+   (define act-ty (<-type #'expr))
+   (same-type? exp-ty act-ty
+               this-syntax
+               #'expr)
    #'(begin
        (begin-for-syntax
          typ)

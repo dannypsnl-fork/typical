@@ -22,4 +22,5 @@ false
   (app suc (app suc zero)))
 n
 
-;(check nil : (List Nat))
+(check nil : (List Nat))
+(check nil : (List Nat))
