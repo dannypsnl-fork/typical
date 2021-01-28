@@ -23,4 +23,4 @@ false
 n
 
 (check nil : (List Nat))
-(check nil : (List Nat))
+(check (app ∷ zero nil) : (List Nat))

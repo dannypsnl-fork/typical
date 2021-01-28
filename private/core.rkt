@@ -15,17 +15,22 @@
      (map (λ (e) (full-expand e occurs)) e*)]
     [v (let ([new-v (hash-ref occurs v #f)])
          (if new-v (full-expand new-v occurs) v))]))
-(define (unify stx exp act
+(define (unify exp act
+               stx precise-stx
                #:subst [subst (make-subst)]
                #:solve? [solve? #t])
   (match* {exp act}
     [{(? freevar?) _} (subst-set! stx subst exp act)]
-    [{_ (? freevar?)} (unify stx act exp #:subst subst #:solve? solve?)]
+    [{_ (? freevar?)} (unify act exp
+                             stx precise-stx
+                             #:subst subst #:solve? solve?)]
     [{`(,t1* ...) `(,t2* ...)}
      (unless (= (length t1*) (length t2*))
        (raise-syntax-error 'semantic (format "cannot unify `~a` and `~a`" exp act)
                            stx))
-     (map (λ (t1 t2) (unify stx t1 t2 #:subst subst #:solve? solve?))
+     (map (λ (t1 t2) (unify t1 t2
+                            stx precise-stx
+                            #:subst subst #:solve? solve?))
           t1* t2*)]
     [{_ _} (unless (equal? exp act)
              (wrong-syntax stx (format "expected: ~a, but got: ~a" exp act)))])

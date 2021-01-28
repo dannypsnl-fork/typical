@@ -7,7 +7,8 @@
          (for-syntax ->)
          (rename-out [define- define]))
 
-(require syntax/parse/define)
+(require syntax/parse/define
+         (for-syntax "private/core.rkt"))
 
 (define-for-syntax Type
   (syntax-property #''Type 'type 'Type))
@@ -21,8 +22,6 @@
 
 (begin-for-syntax
   (require racket/match)
-
-  (struct FreeVar (id) #:transparent)
 
   (define-syntax-class type
     #:datum-literals (->)
@@ -63,9 +62,9 @@
             ctor-runtime*)]
        [(name:id bind*:bind ...)
         #'(begin
-            (define-for-syntax bind*.name (FreeVar (gensym 'bind*.name))) ...
-            (define-for-syntax name (λ (arg*)
-                                      `(name ,@arg*)))
+            (define-for-syntax bind*.name (freevar (gensym 'bind*.name))) ...
+            (define-for-syntax (name . arg*)
+              `(name ,@arg*))
             ty-runtime
             ctor-compiletime*
             ctor-runtime*)]))])
@@ -91,9 +90,9 @@
   [(_ expr:expr : typ:type)
    (define exp-ty (syntax->datum #'typ))
    (define act-ty (<-type #'expr))
-   (same-type? exp-ty act-ty
-               this-syntax
-               #'expr)
+   (unify exp-ty act-ty
+          this-syntax
+          #'expr)
    #'(begin
        (begin-for-syntax
          typ)
@@ -114,13 +113,16 @@
     [(app f:expr arg*:expr ...)
      (match (syntax-property (eval #'f) 'type)
        [`(-> ,param-ty* ... ,ret-ty)
+        (define subst (make-subst))
         (for ([arg (syntax->list #'(arg* ...))]
               [exp-ty param-ty*])
           (define act-ty (<-type arg))
-          (same-type? exp-ty act-ty
-                      this-syntax
-                      arg))
-        ret-ty]
+          (unify exp-ty act-ty
+                 stx
+                 arg
+                 #:subst subst
+                 #:solve? #f))
+        (replace-occur ret-ty #:occur (subst-resolve subst stx))]
        [else (raise-syntax-error 'semantic
                                  "not appliable"
                                  this-syntax
