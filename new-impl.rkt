@@ -108,15 +108,6 @@
          typ)
        expr)])
 
-; type equality
-(define-for-syntax (same-type? exp-ty act-ty
-                               this-syntax
-                               e)
-  (unless (equal? exp-ty act-ty)
-    (raise-syntax-error 'semantic
-                        (format "type mismatched, expected: ~a, but got: ~a" exp-ty act-ty)
-                        this-syntax
-                        e)))
 ; type inference
 (define-for-syntax (<-type stx)
   (syntax-parse stx
