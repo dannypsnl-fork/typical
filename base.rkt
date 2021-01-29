@@ -1,12 +1,10 @@
 #lang racket
 
-(provide (except-out (all-from-out racket)
-                     define
-                     #%app)
+(provide (except-out (all-from-out racket) define)
          data check
          (for-syntax ->)
-         (rename-out [define- define]
-                     [app #%app]))
+         Type
+         (rename-out [define- define]))
 
 (require syntax/parse/define
          (for-syntax "private/core.rkt"))
@@ -14,6 +12,7 @@
 (define-for-syntax Type
   (syntax-property #''Type 'type 'Type))
 (define-syntax (Type stx) Type)
+
 (define-for-syntax (-> . any)
   `(-> ,@(map (λ (ty)
                 (cond
@@ -22,8 +21,7 @@
               any)))
 
 (begin-for-syntax
-  (require racket/match
-           racket/hash)
+  (require racket/match)
 
   (define-syntax-class type
     #:datum-literals (->)
@@ -46,12 +44,6 @@
              (match (syntax->datum #'typ)
                [`(-> ,param* ... ,ret) #'(λ (arg*) `(name ,@arg*))]
                [ty #''name]))))
-
-(define-syntax (app stx)
-  (syntax-parse stx
-    [(_ f:expr arg*:expr ...)
-     (<-type this-syntax)
-     #`(f (list arg* ...))]))
 
 (define-syntax-parser data
   [(_ data-def ctor*:data-clause ...)
@@ -80,16 +72,22 @@
             ctor-compiletime*
             ctor-runtime*)]))])
 
+(define-for-syntax (expand-expr stx)
+  (syntax-parse stx
+    [(f:expr arg*:expr ...)
+     #`(#,(eval (expand-expr #'f)) (list #,@(map expand-expr (syntax->list #'(arg* ...)))))]
+    [e #'e]))
+
 (define-syntax-parser define-
   #:datum-literals (:)
   [(_ name:id : typ:type expr:expr)
-   #'(begin
+   #`(begin
        (check expr : typ)
        (define-for-syntax name
          (syntax-property #'expr
                           'type
                           typ))
-       (define name expr))])
+       (define name #,(expand-expr #'expr)))])
 
 (define-syntax-parser check
   #:datum-literals (:)
@@ -99,10 +97,10 @@
    (unify exp-ty act-ty
           this-syntax
           #'expr)
-   #'(begin
+   #`(begin
        (begin-for-syntax
          typ)
-       expr)])
+       #,(expand-expr #'expr))])
 
 ; type inference
 (define-for-syntax (<-type stx)

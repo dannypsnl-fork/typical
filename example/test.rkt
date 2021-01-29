@@ -10,9 +10,9 @@
 (data (List [A : Type])
       [nil : (List A)]
       [:: : (A (List A) . -> . (List A))])
-#;(data (Vec [A : Type] [N : Nat])
-      [vecnil : (Vec A zero)]
-      [vec:: : (A (Vec A N) . -> . (Vec A (suc N)))])
+#;(data (Vec [E : Type] [N : Nat])
+      [vecnil : (Vec E zero)]
+      [vec:: : (E (Vec E N) . -> . (Vec E (suc N)))])
 (data (Pair [L R : Type])
       [cons : (L R . -> . (Pair L R))])
 (data (= [T : Type] [a b : T])
@@ -28,25 +28,25 @@
 (check (cons zero true) : (Pair Nat Bool))
 
 #;(define a : Nat
-  zero)
+    zero)
 
 #;(define id-Nat : (Nat -> Nat)
-  (λ (n) n))
+    (λ (n) n))
 
 #;(define + : (Nat Nat -> Nat)
-  (λ (n m)
-    (match {n m}
-      [zero ,m => m]
-      [(suc ,n) ,m => (suc (+ n m))])))
+    (λ (n m)
+      (match {n m}
+        [zero ,m => m]
+        [(suc ,n) ,m => (suc (+ n m))])))
 #;(check (+ (suc (suc zero)) (suc (suc zero))) : Nat)
 #;(check (+ (suc zero) (suc (suc zero))) : Nat)
 
 #;(define fib : (Nat -> Nat)
-  (λ (n)
-    (match n
-      [zero => (suc zero)]
-      [(suc zero) => (suc zero)]
-      [(suc (suc ,n)) => (+ (fib (suc n)) (fib n))])))
+    (λ (n)
+      (match n
+        [zero => (suc zero)]
+        [(suc zero) => (suc zero)]
+        [(suc (suc ,n)) => (+ (fib (suc n)) (fib n))])))
 ; 0 -> 1
 #;(check (fib zero) : Nat)
 ; 1 -> 1
@@ -61,8 +61,8 @@
 #;(check (fib (suc (suc (suc (suc (suc zero)))))) : Nat)
 
 #;(define ack : (Nat Nat -> Nat)
-  (λ (n m)
-    (match {n m}
-      [zero ,m => (suc m)]
-      [(suc ,n) zero => (ack n (suc zero))]
-      [(suc ,n) (suc ,m) => (ack n (ack (suc n) m))])))
+    (λ (n m)
+      (match {n m}
+        [zero ,m => (suc m)]
+        [(suc ,n) zero => (ack n (suc zero))]
+        [(suc ,n) (suc ,m) => (ack n (ack (suc n) m))])))
