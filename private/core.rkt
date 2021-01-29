@@ -2,7 +2,6 @@
 
 (provide unify
          replace-occur
-         freevar
          make-subst
          subst-resolve)
 

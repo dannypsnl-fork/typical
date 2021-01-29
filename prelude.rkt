@@ -5,7 +5,7 @@
              Bool true false
              Nat zero suc
              List nil ::
-             Pair cons
+             × cons
              = refl)
  true false
  zero suc
@@ -23,7 +23,7 @@
 (data (List [A : Type])
       [nil : (List A)]
       [:: : (A (List A) . -> . (List A))])
-(data (Pair [L R : Type])
-      [cons : (L R . -> . (Pair L R))])
+(data (× [L R : Type])
+      [cons : (L R . -> . (× L R))])
 (data (= [T : Type] [a b : T])
       [refl : (T . -> . (= T a a))])

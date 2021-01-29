@@ -9,7 +9,8 @@
 
 (require racket/match
          racket/syntax
-         racket/hash)
+         racket/hash
+         racket/string)
 
 (struct subst (bound-map free-map) #:transparent)
 (provide make-subst)
@@ -45,9 +46,7 @@
                #:combine/key (λ (k a b) a))
   resolved-map)
 
-(provide (struct-out freevar))
-(struct freevar (name)
-  #:methods gen:custom-write
-  [(define (write-proc self port mode)
-     (fprintf port "?~a" (freevar-name self)))]
-  #:transparent)
+(provide freevar?)
+(define (freevar? n)
+  (and (symbol? n)
+       (string-prefix? (symbol->string n) "?")))

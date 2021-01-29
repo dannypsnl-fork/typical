@@ -7,7 +7,9 @@
          (rename-out [define- define]))
 
 (require syntax/parse/define
-         (for-syntax "private/core.rkt"))
+         (for-syntax racket/match
+                     racket/hash
+                     "private/core.rkt"))
 
 (define-for-syntax Type
   (syntax-property #''Type 'type 'Type))
@@ -21,8 +23,6 @@
               any)))
 
 (begin-for-syntax
-  (require racket/match)
-
   (define-syntax-class type
     #:datum-literals (->)
     (pattern name:id)
@@ -35,8 +35,8 @@
              #:attr map
              (make-immutable-hash
               (map (λ (name)
-                     (cons name (freevar name)))
-                   (map syntax->datum (syntax->list #'(name* ...)))))))
+                     (cons (syntax->datum name) (gensym '?)))
+                   (syntax->list #'(name* ...))))))
   (define-syntax-class data-clause
     #:datum-literals (:)
     (pattern (name:id : typ:type)
@@ -48,12 +48,6 @@
 (define-syntax-parser data
   [(_ data-def ctor*:data-clause ...)
    (with-syntax ([ty-runtime #'(define-syntax (name stx) #'name)]
-                 [ctor-compiletime*
-                  #`(begin
-                      (define-for-syntax ctor*.name
-                        (syntax-property
-                         #'ctor*.val
-                         'type ctor*.typ)) ...)]
                  [ctor-runtime*
                   #'(begin (define-syntax (ctor*.name stx) ctor*.name) ...)])
      (syntax-parse #'data-def
@@ -61,16 +55,28 @@
         #'(begin
             (define-for-syntax name (syntax-property #'name 'type Type))
             ty-runtime
-            ctor-compiletime*
+            (define-for-syntax ctor*.name
+              (syntax-property
+               #'ctor*.val
+               'type ctor*.typ))
+            ...
             ctor-runtime*)]
        [(name:id bind*:bind ...)
-        #'(begin
-            (define-values-for-syntax (bind*.name* ...) (values (freevar 'bind*.name*) ...)) ...
-            (define-for-syntax (name . arg*)
-              `(name ,@arg*))
-            ty-runtime
-            ctor-compiletime*
-            ctor-runtime*)]))])
+        (with-syntax
+            ([ctor-compiletime*
+              #`(begin
+                  (define-for-syntax ctor*.name
+                    (syntax-property
+                     #'ctor*.val
+                     'type (replace-occur
+                            'ctor*.typ
+                            #:occur #,(apply hash-union (attribute bind*.map))))) ...)])
+          #'(begin
+              (define-for-syntax (name . arg*)
+                `(name ,@arg*))
+              ty-runtime
+              ctor-compiletime*
+              ctor-runtime*))]))])
 
 (define-for-syntax (expand-expr stx)
   (syntax-parse stx

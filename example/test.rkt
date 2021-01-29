@@ -2,18 +2,18 @@
 
 (require typical/prelude)
 
-#;(data (Vec [E : Type] [N : Nat])
-        [vecnil : (Vec E zero)]
-        [vec:: : (E (Vec E N) . -> . (Vec E (suc N)))])
-
 (check (refl zero) : (= Nat zero zero))
 
 (check zero : Nat)
 (check (suc zero) : Nat)
 (check (:: zero (:: zero (:: zero nil))) : (List Nat))
+(check (cons zero true) : (× Nat Bool))
+
+;(data (Vec [E : Type] [N : Nat])
+;      [vecnil : (Vec E zero)]
+;      [vec:: : (E (Vec E N) . -> . (Vec E (suc N)))])
 ;(check vecnil : (Vec Nat zero))
 ;(check (vec:: (suc zero) (vec:: zero vecnil)) : (Vec Nat (suc (suc zero))))
-(check (cons zero true) : (Pair Nat Bool))
 
 #;(define a : Nat
     zero)
