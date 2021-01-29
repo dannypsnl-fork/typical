@@ -12,11 +12,12 @@
 (check vecnil : (Vec Nat zero))
 (check (vec:: (suc zero) (vec:: zero vecnil)) : (Vec Nat (suc (suc zero))))
 
-#;(define a : Nat
-    zero)
+(define a : Nat
+  zero)
 
-#;(define id-Nat : (Nat -> Nat)
-    (λ (n) n))
+(define (id-Nat [n : Nat]) : Nat
+  n)
+(check (id-Nat zero) : Nat)
 
 #;(define + : (Nat Nat -> Nat)
     (λ (n m)

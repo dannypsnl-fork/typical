@@ -1,6 +1,7 @@
 #lang racket
 
-(provide (except-out (all-from-out racket) define)
+(provide (except-out (all-from-out racket)
+                     define)
          data check
          (for-syntax ->)
          Type
@@ -9,6 +10,7 @@
 (require syntax/parse/define
          (for-syntax racket/match
                      racket/hash
+                     racket/list
                      "private/core.rkt"))
 
 (define-for-syntax Type
@@ -32,6 +34,8 @@
   (define-syntax-class bind
     #:datum-literals (:)
     (pattern (name*:id ... : typ:type)
+             #:attr flatten-name*
+             (syntax->list #'(name* ...))
              #:attr map
              (make-immutable-hash
               (map (λ (name)
@@ -94,7 +98,20 @@
          (syntax-property #'expr
                           'type
                           typ))
-       (define name #,(expand-expr #'expr)))])
+       (define name #,(expand-expr #'expr)))]
+  [(_ (name:id param*:bind ...) : ret-ty:type
+      expr:expr)
+   (define param-name* (flatten (attribute param*.flatten-name*)))
+   #`(begin
+       (define-for-syntax name
+         (syntax-property
+          #'(λ (#,@param-name*)
+              ; FIXME: allow this check but don't break code
+              ;(check expr : ret-ty)
+              expr)
+          'type
+          (param*.typ ... . -> . ret-ty)))
+       (define (name #,@param-name*) expr))])
 
 (define-syntax-parser check
   #:datum-literals (:)
