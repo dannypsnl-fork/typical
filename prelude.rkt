@@ -6,10 +6,12 @@
              Nat zero suc
              List nil ::
              × cons
-             = refl)
+             = refl
+             Vec vecnil vec::)
  true false
  zero suc
  nil ::
+ vecnil vec::
  cons
  refl)
 

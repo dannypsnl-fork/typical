@@ -2,15 +2,15 @@
 
 (require typical/prelude)
 
+(check (refl (suc zero)) : (= Nat (suc zero) (suc zero)))
 (check (refl zero) : (= Nat zero zero))
 
 (check zero : Nat)
 (check (suc zero) : Nat)
 (check (:: zero (:: zero (:: zero nil))) : (List Nat))
 (check (cons zero true) : (× Nat Bool))
-
-;(check vecnil : (Vec Nat zero))
-;(check (vec:: (suc zero) (vec:: zero vecnil)) : (Vec Nat (suc (suc zero))))
+(check vecnil : (Vec Nat zero))
+(check (vec:: (suc zero) (vec:: zero vecnil)) : (Vec Nat (suc (suc zero))))
 
 #;(define a : Nat
     zero)

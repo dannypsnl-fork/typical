@@ -81,7 +81,8 @@
 (define-for-syntax (expand-expr stx)
   (syntax-parse stx
     [(f:expr arg*:expr ...)
-     #`(#,(eval (expand-expr #'f)) (list #,@(map expand-expr (syntax->list #'(arg* ...)))))]
+     #`(#,(eval (expand-expr #'f))
+        (list #,@(map expand-expr (syntax->list #'(arg* ...)))))]
     [e #'e]))
 
 (define-syntax-parser define-
@@ -104,8 +105,9 @@
           this-syntax
           #'expr)
    #`(begin
+       ;; FIXME: type level computation for point usage
        (begin-for-syntax
-         typ)
+         #;typ)
        #,(expand-expr #'expr))])
 
 ; type inference
