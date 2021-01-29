@@ -23,6 +23,9 @@
 (data (List [A : Type])
       [nil : (List A)]
       [:: : (A (List A) . -> . (List A))])
+(data (Vec [A : Type] [N : Nat])
+      [vecnil : (Vec A zero)]
+      [vec:: : (A (Vec A N) . -> . (Vec A (suc N)))])
 (data (× [L R : Type])
       [cons : (L R . -> . (× L R))])
 (data (= [T : Type] [a b : T])
