@@ -6,7 +6,7 @@
 (check (refl zero) : (= Nat zero zero))
 
 (check zero : Nat)
-(check (suc zero) : Nat)
+(check (suc (suc zero)) : Nat)
 (check (:: zero (:: zero (:: zero nil))) : (List Nat))
 (check (cons zero true) : (× Nat Bool))
 (check vecnil : (Vec Nat zero))
@@ -17,7 +17,7 @@
 
 (define (id-Nat [n : Nat]) : Nat
   n)
-(check (id-Nat zero) : Nat)
+(check (id-Nat (suc zero)) : Nat)
 
 #;(define + : (Nat Nat -> Nat)
     (λ (n m)
