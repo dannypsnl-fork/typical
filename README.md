@@ -7,7 +7,7 @@
     ```racket
     (data Nat
         [zero : Nat]
-        [suc : (Nat -> Nat)])
+        [suc : (Nat . -> . Nat)])
     ```
 
 2. `define` introduces user-defined variables
@@ -18,11 +18,11 @@
       zero)
     ```
 
-3. is-a judgement
+3. check type of term
 
     ```racket
-    ; read as "`zero` is a `Nat`?"
-    (zero :? Nat)
+    ; read as "check `zero` is a `Nat`?"
+    (check zero : Nat)
     ```
 
 ### TODO
