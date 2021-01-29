@@ -10,9 +10,9 @@
 (data (List [A : Type])
       [nil : (List A)]
       [∷ : (A (List A) . -> . (List A))])
-(data (Vec [A : Type] [LEN : Nat])
-      [vecnil : (Vec A zero)]
-      [vec∷ : (A (Vec A LEN) . -> . (Vec A (suc LEN)))])
+(data (Pair [L R : Type])
+      [cons : (L R . -> . (Pair L R))])
+
 
 (app suc zero)
 
@@ -27,5 +27,4 @@ n
 (check nil : (List Nat))
 (check (app ∷ false nil) : (List Bool))
 
-(check vecnil : (Vec Nat zero))
-(check (app vec∷ false vecnil) : (Vec Bool (suc zero)))
+(check (app cons zero false) : (Pair Nat Bool))

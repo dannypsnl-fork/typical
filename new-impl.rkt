@@ -46,9 +46,22 @@
                [`(-> ,param* ... ,ret) #'(λ (arg*) `(name ,@arg*))]
                [ty #''name]))))
 
+(define-for-syntax (app stx)
+  (syntax-parse stx
+    [(_ f:expr arg*:expr ...)
+     (<-type this-syntax)
+     #`(#,(eval #'f) (list arg* ...))]))
+(define-syntax app app)
+
 (define-syntax-parser data
   [(_ data-def ctor*:data-clause ...)
    (with-syntax ([ty-runtime #'(define-syntax (name stx) #'name)]
+                 [ctor-compiletime*
+                  #`(begin
+                      (define-for-syntax ctor*.name
+                        (syntax-property
+                         #'ctor*.val
+                         'type ctor*.typ)) ...)]
                  [ctor-runtime*
                   #'(begin (define-syntax (ctor*.name stx) ctor*.name) ...)])
      (syntax-parse #'data-def
@@ -56,33 +69,16 @@
         #'(begin
             (define-for-syntax name (syntax-property #'name 'type Type))
             ty-runtime
-            (define-for-syntax ctor*.name
-              (syntax-property
-               #'ctor*.val
-               'type ctor*.typ))
-            ...
+            ctor-compiletime*
             ctor-runtime*)]
        [(name:id bind*:bind ...)
-        (with-syntax
-            ([ctor-compiletime*
-              #`(begin
-                  (define-for-syntax ctor*.name
-                    (syntax-property
-                     #'ctor*.val
-                     'type (replace-occur
-                            'ctor*.typ
-                            #:occur #,(apply hash-union (attribute bind*.map))))) ...)])
-          #'(begin
-              (define-for-syntax (name . arg*)
-                `(name ,@arg*))
-              ty-runtime
-              ctor-compiletime*
-              ctor-runtime*))]))])
-
-(define-syntax-parser app
-  [(_ f:expr arg*:expr ...)
-   (<-type this-syntax)
-   #`(#,(eval #'f) (list arg* ...))])
+        #'(begin
+            (define-values-for-syntax (bind*.name* ...) (values (freevar 'bind*.name*) ...)) ...
+            (define-for-syntax (name . arg*)
+              `(name ,@arg*))
+            ty-runtime
+            ctor-compiletime*
+            ctor-runtime*)]))])
 
 (define-syntax-parser define-
   #:datum-literals (:)
@@ -111,7 +107,7 @@
 ; type inference
 (define-for-syntax (<-type stx)
   (syntax-parse stx
-    [(app f:expr arg*:expr ...)
+    [((~literal app) f:expr arg*:expr ...)
      (match (syntax-property (eval #'f) 'type)
        [`(-> ,param-ty* ... ,ret-ty)
         (define subst (make-subst))
