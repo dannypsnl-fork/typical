@@ -47,7 +47,27 @@
              #:attr val
              (match (syntax->datum #'typ)
                [`(-> ,param* ... ,ret) #'(λ (arg*) `(name ,@arg*))]
-               [ty #''name]))))
+               [ty #''name])))
+
+  (define (expand-pattern p)
+    (syntax-parse p
+      [(unquote name) #',name]
+      [(name pat* ...)
+       #`(name #,@(map expand-pattern (syntax->list #'(pat* ...))))]
+      [name #',(== 'name)]))
+
+  (define-syntax-class define-clause
+    #:datum-literals (=>)
+    (pattern (pattern* ... => expr:expr)
+             #:attr expanded-pattern*
+             (map expand-pattern
+                  (syntax->list #'(pattern* ...)))
+             #:attr def
+             #`[{#,@(map
+                     (λ (pat)
+                       #``#,pat)
+                     (attribute expanded-pattern*))}
+                expr])))
 
 (define-syntax-parser data
   [(_ data-def ctor*:data-clause ...)
@@ -100,18 +120,25 @@
                           typ))
        (define name #,(expand-expr #'expr)))]
   [(_ (name:id param*:bind ...) : ret-ty:type
-      expr:expr)
+      . body)
    (define param-name* (flatten (attribute param*.flatten-name*)))
-   #`(begin
-       (define-for-syntax name
-         (syntax-property
-          #'(λ (#,@param-name*)
-              ; FIXME: allow this check but don't break code
-              ;(check expr : ret-ty)
-              expr)
-          'type
-          (param*.typ ... . -> . ret-ty)))
-       (define (name #,@param-name*) expr))])
+   (syntax-parse #'body
+     [(clause*:define-clause ...)
+      #`(begin
+          (define (name #,@param-name*)
+            (match* {#,@param-name*}
+              clause*.def ...)))]
+     [expr:expr
+      #`(begin
+          (define-for-syntax name
+            (syntax-property
+             #'(λ (#,@param-name*)
+                 ; FIXME: allow this check but don't break code
+                 ;(check expr : ret-ty)
+                 expr)
+             'type
+             (param*.typ ... . -> . ret-ty)))
+          (define (name #,@param-name*) expr))])])
 
 (define-syntax-parser check
   #:datum-literals (:)

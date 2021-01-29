@@ -15,15 +15,13 @@
 (define a : Nat
   zero)
 
-(define (id-Nat [n : Nat]) : Nat
-  n)
-(check (id-Nat (suc zero)) : Nat)
+;(define (id-Nat [n : Nat]) : Nat
+;  n)
+;(check (id-Nat (suc zero)) : Nat)
 
-#;(define + : (Nat Nat -> Nat)
-    (λ (n m)
-      (match {n m}
-        [zero ,m => m]
-        [(suc ,n) ,m => (suc (+ n m))])))
+(define (+ [n m : Nat]) : Nat
+  [zero ,m => m]
+  [(suc ,n) ,m => (suc (+ n m))])
 #;(check (+ (suc (suc zero)) (suc (suc zero))) : Nat)
 #;(check (+ (suc zero) (suc (suc zero))) : Nat)
 
