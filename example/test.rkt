@@ -1,65 +1,66 @@
 #lang typical/base
 
-(data Nat
-      [zero : Nat]
-      [suc : (Nat -> Nat)])
+(data Empty)
 (data Bool
       [true : Bool]
       [false : Bool])
+(data Nat
+      [zero : Nat]
+      [suc : (Nat . -> . Nat)])
 (data (List [A : Type])
       [nil : (List A)]
-      [:: : (A (List A) -> (List A))])
-(data (Vec [A : Type] [N : Nat])
+      [:: : (A (List A) . -> . (List A))])
+#;(data (Vec [A : Type] [N : Nat])
       [vecnil : (Vec A zero)]
-      [vec:: : (A (Vec A N) -> (Vec A (suc N)))])
-(data (Pair [A B : Type])
-      [cons : (A B -> (Pair A B))])
-(data (= [A : Type] [a b : A])
-      [refl : (A -> (= A a a))])
+      [vec:: : (A (Vec A N) . -> . (Vec A (suc N)))])
+(data (Pair [L R : Type])
+      [cons : (L R . -> . (Pair L R))])
+(data (= [T : Type] [a b : T])
+      [refl : (T . -> . (= T a a))])
 
-((refl zero) :? (= Nat zero zero))
+(check (refl zero) : (= Nat zero zero))
 
-(zero :? Nat)
-((suc zero) :? Nat)
-((:: zero (:: zero (:: zero nil))) :? (List Nat))
-(vecnil :? (Vec Nat zero))
-((vec:: (suc zero) (vec:: zero vecnil)) :? (Vec Nat (suc (suc zero))))
-((cons zero true) :? (Pair Nat Bool))
+(check zero : Nat)
+(check (suc zero) : Nat)
+(check (:: zero (:: zero (:: zero nil))) : (List Nat))
+;(check vecnil : (Vec Nat zero))
+;(check (vec:: (suc zero) (vec:: zero vecnil)) : (Vec Nat (suc (suc zero))))
+(check (cons zero true) : (Pair Nat Bool))
 
-(define a : Nat
+#;(define a : Nat
   zero)
 
-(define id-Nat : (Nat -> Nat)
+#;(define id-Nat : (Nat -> Nat)
   (λ (n) n))
 
-(define + : (Nat Nat -> Nat)
+#;(define + : (Nat Nat -> Nat)
   (λ (n m)
     (match {n m}
       [zero ,m => m]
       [(suc ,n) ,m => (suc (+ n m))])))
-((+ (suc (suc zero)) (suc (suc zero))) :? Nat)
-((+ (suc zero) (suc (suc zero))) :? Nat)
+#;(check (+ (suc (suc zero)) (suc (suc zero))) : Nat)
+#;(check (+ (suc zero) (suc (suc zero))) : Nat)
 
-(define fib : (Nat -> Nat)
+#;(define fib : (Nat -> Nat)
   (λ (n)
     (match n
       [zero => (suc zero)]
       [(suc zero) => (suc zero)]
       [(suc (suc ,n)) => (+ (fib (suc n)) (fib n))])))
 ; 0 -> 1
-((fib zero) :? Nat)
+#;(check (fib zero) : Nat)
 ; 1 -> 1
-((fib (suc zero)) :? Nat)
+#;(check (fib (suc zero)) : Nat)
 ; 2 -> 2
-((fib (suc (suc zero))) :? Nat)
+#;(check (fib (suc (suc zero))) : Nat)
 ; 3 -> 3
-((fib (suc (suc (suc zero)))) :? Nat)
+#;(check (fib (suc (suc (suc zero)))) : Nat)
 ; 4 -> 5
-((fib (suc (suc (suc (suc zero))))) :? Nat)
+#;(check (fib (suc (suc (suc (suc zero))))) : Nat)
 ; 5 -> 8
-((fib (suc (suc (suc (suc (suc zero)))))) :? Nat)
+#;(check (fib (suc (suc (suc (suc (suc zero)))))) : Nat)
 
-(define ack : (Nat Nat -> Nat)
+#;(define ack : (Nat Nat -> Nat)
   (λ (n m)
     (match {n m}
       [zero ,m => (suc m)]

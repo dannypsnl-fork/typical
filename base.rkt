@@ -1,87 +1,134 @@
 #lang racket
 
-(provide (except-out (all-from-out racket) #%module-begin)
-         (rename-out [@#%module-begin #%module-begin]))
+(provide (except-out (all-from-out racket)
+                     define
+                     #%app)
+         data check
+         (for-syntax ->)
+         (rename-out [define- define]
+                     [app #%app]))
 
-(require (for-syntax nanopass/base
-                     racket/match
-                     "private/lang.rkt"
-                     "private/type-check.rkt"))
+(require syntax/parse/define
+         (for-syntax "private/core.rkt"))
 
-(define-for-syntax (compose-pass* stx pass*)
-  (let ([r (parse stx)]
-        [todo* pass*])
-    (for ([f todo*])
-      (set! r (if r
-                  (f r)
-                  #f)))
-    (if r r (void))))
+(define-for-syntax Type
+  (syntax-property #''Type 'type 'Type))
+(define-syntax (Type stx) Type)
+(define-for-syntax (-> . any)
+  `(-> ,@(map (λ (ty)
+                (cond
+                  [(syntax? ty) (syntax->datum ty)]
+                  [else ty]))
+              any)))
 
-(define-for-syntax (tc stx)
-  (compose-pass* stx (list pass:expand-data
-                           pass:termination-check
-                           pass:ty/bind
-                           pass:ty/check))
-  (void))
+(begin-for-syntax
+  (require racket/match
+           racket/hash)
 
-(define-for-syntax (define-constructor b)
-  (nanopass-case
-   (Typical Bind) b
-   [(: ,name ,typ)
-    (with-syntax ([e (syntax->datum name)])
-      (match (unparse-Typical typ)
-        [`(,typ* ... -> ,typ)
-         #`(define (#,name . arg*)
-             `(e ,@arg*))]
-        [else #`(define #,name 'e)]))]))
-(define-for-syntax (expand-pattern p)
-  (nanopass-case
-   (Typical Pattern) p
-   [,name #`,(== #,name)]
-   [(intro ,name) #`,#,name]
-   [(,name ,pat* ...)
-    #`(#,name #,@(map expand-pattern pat*))]))
-(define-for-syntax (expand-clause c)
-  (nanopass-case
-   (Typical Clause) c
-   [(+> ,stx ,pat* ... ,expr)
-    #`[{#,@(map (λ (pat) #``#,(expand-pattern pat)) pat*)}
-       #,(expand-expr expr)]]))
-(define-for-syntax (expand-expr e)
-  (nanopass-case
-   (Typical Expr) e
-   [(match ,stx (,expr* ...) ,clause* ...)
-    #`(match* {#,@expr*}
-        #,@(map expand-clause clause*))]
-   [(λ ,stx (,param* ...) ,expr)
-    #`(λ (#,@param*) #,(expand-expr expr))]
-   [(app ,stx ,expr ,expr* ...)
-    #`(#,(expand-expr expr) #,@(map expand-expr expr*))]
-   [,name name]))
-(define-for-syntax (pass:to-racket s)
-  (nanopass-case
-   (Typical Stmt) s
-   [(data ,stx ,name (,dependency* ...) ,constructor* ...)
-    ;; FIXME: make type function when dependency existed
-    #`(begin
-        (define #,name '#,(syntax->datum name))
-        #,@(map define-constructor constructor*))]
-   [(is-a? ,stx ,expr ,typ)
-    (expand-expr expr)]
-   [(define ,stx ,name ,typ ,expr)
-    #`(define #,name #,(expand-expr expr))]))
-(define-for-syntax (expand-to-racket stx)
-  (compose-pass* stx (list pass:to-racket)))
+  (define-syntax-class type
+    #:datum-literals (->)
+    (pattern name:id)
+    (pattern (name:id e*:type ...))
+    (pattern (-> param*:type ... ret:type)))
 
-(define-syntax (@#%module-begin stx)
-  (syntax-case stx ()
-    [(e* ...)
-     ;;; type checking
-     ; cdr to skip #%module-begin
-     (for ([e (cdr (syntax->list #'(e* ...)))])
-       (tc e))
-     #`(#%module-begin
-        #,@(map expand-to-racket (cdr (syntax->list #'(e* ...)))))]))
+  (define-syntax-class bind
+    #:datum-literals (:)
+    (pattern (name*:id ... : typ:type)
+             #:attr map
+             (make-immutable-hash
+              (map (λ (name)
+                     (cons name (freevar name)))
+                   (map syntax->datum (syntax->list #'(name* ...)))))))
+  (define-syntax-class data-clause
+    #:datum-literals (:)
+    (pattern (name:id : typ:type)
+             #:attr val
+             (match (syntax->datum #'typ)
+               [`(-> ,param* ... ,ret) #'(λ (arg*) `(name ,@arg*))]
+               [ty #''name]))))
+
+(define-syntax (app stx)
+  (syntax-parse stx
+    [(_ f:expr arg*:expr ...)
+     (<-type this-syntax)
+     #`(f (list arg* ...))]))
+
+(define-syntax-parser data
+  [(_ data-def ctor*:data-clause ...)
+   (with-syntax ([ty-runtime #'(define-syntax (name stx) #'name)]
+                 [ctor-compiletime*
+                  #`(begin
+                      (define-for-syntax ctor*.name
+                        (syntax-property
+                         #'ctor*.val
+                         'type ctor*.typ)) ...)]
+                 [ctor-runtime*
+                  #'(begin (define-syntax (ctor*.name stx) ctor*.name) ...)])
+     (syntax-parse #'data-def
+       [name:id
+        #'(begin
+            (define-for-syntax name (syntax-property #'name 'type Type))
+            ty-runtime
+            ctor-compiletime*
+            ctor-runtime*)]
+       [(name:id bind*:bind ...)
+        #'(begin
+            (define-values-for-syntax (bind*.name* ...) (values (freevar 'bind*.name*) ...)) ...
+            (define-for-syntax (name . arg*)
+              `(name ,@arg*))
+            ty-runtime
+            ctor-compiletime*
+            ctor-runtime*)]))])
+
+(define-syntax-parser define-
+  #:datum-literals (:)
+  [(_ name:id : typ:type expr:expr)
+   #'(begin
+       (check expr : typ)
+       (define-for-syntax name
+         (syntax-property #'expr
+                          'type
+                          typ))
+       (define name expr))])
+
+(define-syntax-parser check
+  #:datum-literals (:)
+  [(_ expr:expr : typ:type)
+   (define exp-ty (syntax->datum #'typ))
+   (define act-ty (<-type #'expr))
+   (unify exp-ty act-ty
+          this-syntax
+          #'expr)
+   #'(begin
+       (begin-for-syntax
+         typ)
+       expr)])
+
+; type inference
+(define-for-syntax (<-type stx)
+  (syntax-parse stx
+    [(f:expr arg*:expr ...)
+     (match (syntax-property (eval #'f) 'type)
+       [`(-> ,param-ty* ... ,ret-ty)
+        (define subst (make-subst))
+        (for ([arg (syntax->list #'(arg* ...))]
+              [exp-ty param-ty*])
+          (define act-ty (<-type arg))
+          (unify exp-ty act-ty
+                 stx
+                 arg
+                 #:subst subst
+                 #:solve? #f))
+        (replace-occur ret-ty #:occur (subst-resolve subst stx))]
+       [else (raise-syntax-error 'semantic
+                                 "not appliable"
+                                 this-syntax
+                                 #'f)])]
+    [x:id
+     (define r (syntax-property (eval #'x) 'type))
+     (if (syntax? r)
+         (syntax->datum r)
+         r)]))
 
 (module reader syntax/module-reader
   typical/base)
