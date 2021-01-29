@@ -1,30 +1,18 @@
-#lang typical/base
+#lang typical
 
-(data Empty)
-(data Bool
-      [true : Bool]
-      [false : Bool])
-(data Nat
-      [zero : Nat]
-      [suc : (Nat . -> . Nat)])
-(data (List [A : Type])
-      [nil : (List A)]
-      [:: : (A (List A) . -> . (List A))])
-(data (Vec [E : Type] [N : Nat])
-      [vecnil : (Vec E zero)]
-      [vec:: : (E (Vec E N) . -> . (Vec E (suc N)))])
-(data (Pair [L R : Type])
-      [cons : (L R . -> . (Pair L R))])
-(data (= [T : Type] [a b : T])
-      [refl : (T . -> . (= T a a))])
+(require typical/prelude)
+
+#;(data (Vec [E : Type] [N : Nat])
+        [vecnil : (Vec E zero)]
+        [vec:: : (E (Vec E N) . -> . (Vec E (suc N)))])
 
 (check (refl zero) : (= Nat zero zero))
 
 (check zero : Nat)
 (check (suc zero) : Nat)
 (check (:: zero (:: zero (:: zero nil))) : (List Nat))
-(check vecnil : (Vec Nat zero))
-(check (vec:: (suc zero) (vec:: zero vecnil)) : (Vec Nat (suc (suc zero))))
+;(check vecnil : (Vec Nat zero))
+;(check (vec:: (suc zero) (vec:: zero vecnil)) : (Vec Nat (suc (suc zero))))
 (check (cons zero true) : (Pair Nat Bool))
 
 #;(define a : Nat
